@@ -3,7 +3,7 @@
 
 // ---------- Driving ----------
 // Vehicle faces local +x. Heading h rotates +x toward -z, so A (left) increases h.
-const car={x:0,y:0,z:0,h:0,v:0,pitch:0,roll:0};root.rotation.order='YZX';
+const car={x:MAP.start.x,y:0,z:MAP.start.z,h:MAP.start.h,v:0,pitch:0,roll:0};root.rotation.order='YZX';
 const keys={};
 const wheels=parts.filter(pt=>pt.po[0].r[0]===PI/2).map(pt=>pt.o);let wheelSpin=0,dustT=0;
 const CR=1.5; // vehicle collision radius
@@ -42,7 +42,7 @@ function drive(dt){
   car.x+=fx*moved;car.z+=fz*moved;
   gait(dt,moved,mode===2&&!run?t*TUNE.turn:0);
   collide(fx,fz);
-  const lim=GS/2-3;car.x=Math.max(-lim,Math.min(lim,car.x));car.z=Math.max(-lim,Math.min(lim,car.z));
+  const lim=PLAY;car.x=Math.max(-lim,Math.min(lim,car.x));car.z=Math.max(-lim,Math.min(lim,car.z));
   // follow terrain: sample front/back and both sides
   const sx=Math.sin(car.h),sz=Math.cos(car.h);
   const hf=gh(car.x+fx*1.1,car.z+fz*1.1),hb=gh(car.x-fx*1.1,car.z-fz*1.1),hl=gh(car.x+sx*.95,car.z+sz*.95),hr=gh(car.x-sx*.95,car.z-sz*.95);

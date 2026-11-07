@@ -56,7 +56,7 @@ function makeEnemy(x,z){const g=new THREE.Group();g.rotation.order='YZX';sc.add(
   const e={g,tur,bp,muz:m,lamp,lampM,bar,x,z,y:gh(x,z),h:Math.random()*6.28,v:0,pitch:0,roll:0,hp:EN_HP,dead:false,deadT:0,flash:0,
     reload:rnd(2,4),tYaw:0,tElev:.1,wp:null,strafe:Math.random()<.5?1:-1,strafeT:rnd(3,7),lead:rnd(.55,.95),kx:0,kz:0,stun:0,rammed:-9,type:'crawler',r:1.5,hh:1.9,maxHp:EN_HP,barY:2.6};
   enemies.push(e);return e}
-function spawnPoint(){let x=0,z=0;for(let i=0;i<20;i++){const a=Math.random()*6.28;x=Math.cos(a)*46;z=Math.sin(a)*46;if(Math.hypot(x-car.x,z-car.z)>32&&!layoutNear(x,z))break}return[x,z]}
+function spawnPoint(){let x=0,z=0;for(let i=0;i<20;i++){const a=Math.random()*6.28;x=Math.cos(a)*MAP.spawn.ring;z=Math.sin(a)*MAP.spawn.ring;if(Math.hypot(x-car.x,z-car.z)>MAP.spawn.minDist&&!layoutNear(x,z))break}return[x,z]}
 function spawnEnemy(){makeEnemy(...spawnPoint())}
 function removeEnemy(e){sc.remove(e.g);e.bar.remove();enemies.splice(enemies.indexOf(e),1)}
 function enemyFire(e){const p=new THREE.Vector3();e.muz.getWorldPosition(p);e.bp.getWorldQuaternion(_q);
@@ -81,7 +81,7 @@ function enemyTick(e,dt){
   if(engage){ // close in, back off, or circle-strafe inside the preferred band
     if(d>EN_PREF[1]){want=toP;spd=5}else if(d<EN_PREF[0]){want=toP;spd=-3}else{want=toP+e.strafe*PI/2;spd=3.2}
     e.strafeT-=dt;if(e.strafeT<0){e.strafe*=-1;e.strafeT=rnd(3,7)}}
-  else{if(!e.wp||Math.hypot(e.wp.x-e.x,e.wp.z-e.z)<3)e.wp={x:rnd(-45,45),z:rnd(-45,45)};want=Math.atan2(-(e.wp.z-e.z),e.wp.x-e.x);spd=3.5}
+  else{if(!e.wp||Math.hypot(e.wp.x-e.x,e.wp.z-e.z)<3)e.wp={x:rnd(-PLAY,PLAY)*.8,z:rnd(-PLAY,PLAY)*.8};want=Math.atan2(-(e.wp.z-e.z),e.wp.x-e.x);spd=3.5}
   if(e.stun>0)spd=0;
   let dh=want-e.h;dh=Math.atan2(Math.sin(dh),Math.cos(dh));e.h+=Math.max(-1.2*dt,Math.min(1.2*dt,dh));
   e.v+=(spd*Math.max(0,Math.cos(dh))-e.v)*Math.min(1,dt*2);
@@ -91,7 +91,7 @@ function enemyTick(e,dt){
   for(const o of enemies)if(o!==e&&!o.dead)pushOut(e,o.x,o.z,3);
   for(const pc of pieces)if(pc.state<2&&obbPush(e,pc,1.5)&&!engage)e.wp=null;
   if(!pl.dead)pushOut(e,car.x,car.z,1.5+CR); // crawler stops against the player
-  const lim=GS/2-4;e.x=Math.max(-lim,Math.min(lim,e.x));e.z=Math.max(-lim,Math.min(lim,e.z));
+  const lim=PLAY-1;e.x=Math.max(-lim,Math.min(lim,e.x));e.z=Math.max(-lim,Math.min(lim,e.z));
   const sx=Math.sin(e.h),sz=Math.cos(e.h),hf=gh(e.x+fx*1.2,e.z+fz*1.2),hb=gh(e.x-fx*1.2,e.z-fz*1.2),hl=gh(e.x+sx*.9,e.z+sz*.9),hr=gh(e.x-sx*.9,e.z-sz*.9),k=Math.min(1,dt*8);
   e.pitch+=(Math.atan2(hf-hb,2.4)-e.pitch)*k;e.roll+=(-Math.atan2(hl-hr,1.8)-e.roll)*k;e.y+=((hf+hb+hl+hr)/4-e.y)*k;
   e.g.position.set(e.x,e.y,e.z);e.g.rotation.set(e.roll,e.h,e.pitch);
@@ -125,7 +125,7 @@ function bikeTick(e,dt){const dx=car.x-e.x,dz=car.z-e.z,d=Math.hypot(dx,dz);e.t+
   e.x+=e.kx*dt;e.z+=e.kz*dt;const kd=Math.exp(-dt*4);e.kx*=kd;e.kz*=kd;e.stun=Math.max(0,e.stun-dt);
   let want,spd;
   if(!pl.dead){want=Math.atan2(-dz,dx)+(d>10?Math.sin(e.t*2.2+e.seed)*.6:0);spd=BIKE.spd}
-  else{if(!e.wp||Math.hypot(e.wp.x-e.x,e.wp.z-e.z)<3)e.wp={x:rnd(-45,45),z:rnd(-45,45)};want=Math.atan2(-(e.wp.z-e.z),e.wp.x-e.x);spd=5}
+  else{if(!e.wp||Math.hypot(e.wp.x-e.x,e.wp.z-e.z)<3)e.wp={x:rnd(-PLAY,PLAY)*.8,z:rnd(-PLAY,PLAY)*.8};want=Math.atan2(-(e.wp.z-e.z),e.wp.x-e.x);spd=5}
   if(e.stun>0)spd=0;
   let dh=want-e.h;dh=Math.atan2(Math.sin(dh),Math.cos(dh));e.h+=Math.max(-BIKE.turn*dt,Math.min(BIKE.turn*dt,dh));
   e.v+=(spd*Math.max(.25,Math.cos(dh))-e.v)*Math.min(1,dt*1.5);
@@ -134,7 +134,7 @@ function bikeTick(e,dt){const dx=car.x-e.x,dz=car.z-e.z,d=Math.hypot(dx,dz);e.t+
   for(const o of targets){const h=o.userData.h;pushOut(e,Math.max(o.position.x-h.x,Math.min(e.x,o.position.x+h.x)),Math.max(o.position.z-h.z,Math.min(e.z,o.position.z+h.z)),.9)}
   for(const pc of pieces)if(pc.state<2)obbPush(e,pc,.9);
   for(const o of enemies)if(o!==e&&!o.dead)pushOut(e,o.x,o.z,1.8);
-  const lim=GS/2-4;e.x=Math.max(-lim,Math.min(lim,e.x));e.z=Math.max(-lim,Math.min(lim,e.z));
+  const lim=PLAY-1;e.x=Math.max(-lim,Math.min(lim,e.x));e.z=Math.max(-lim,Math.min(lim,e.z));
   const hf=gh(e.x+fx*.7,e.z+fz*.7),hb=gh(e.x-fx*.7,e.z-fz*.7),k=Math.min(1,dt*10);
   e.pitch+=(Math.atan2(hf-hb,1.4)-e.pitch)*k;e.roll+=(Math.max(-.5,Math.min(.5,-dh*1.2))*Math.min(1,e.v/6)-e.roll)*Math.min(1,dt*5);e.y+=((hf+hb)/2-e.y)*k; // leans into turns
   e.g.position.set(e.x,e.y,e.z);e.g.rotation.set(e.roll,e.h,e.pitch);e.wheels.forEach(w=>w.rotation.y-=e.v*dt/.36);
@@ -158,4 +158,4 @@ function combatTick(dt){
     const show=_sp.z<1&&dist<60&&(e.hp<e.maxHp||dist<35);e.bar.style.display=show?'block':'none';
     if(show){e.bar.style.left=(r.left+(_sp.x+1)/2*r.width)+'px';e.bar.style.top=(r.top+(1-_sp.y)/2*r.height)+'px';e.bar.firstChild.style.width=(e.hp/e.maxHp*100)+'%'}})}
 function resetCombat(){enemies.slice().forEach(removeEnemy);shots.forEach(s=>{sc.remove(s.m);if(s.warn)sc.remove(s.warn)});shots.length=0;
-  Object.assign(pl,{hp:100,dead:false,lastHit:-99});Object.assign(car,{x:0,z:0,h:0,v:0});kills=0;killsEl.textContent=0;toastT=.01;spawnT=3;bikeT=20}
+  Object.assign(pl,{hp:100,dead:false,lastHit:-99});Object.assign(car,{x:MAP.start.x,z:MAP.start.z,h:MAP.start.h,v:0});kills=0;killsEl.textContent=0;toastT=.01;spawnT=3;bikeT=20}

@@ -8,7 +8,7 @@ const AIM={yaw:0,elev:.25,k:0},ELEV_MIN=.03,ELEV_MAX=1.45,YAW_MAX=PI*.75;
 const pivArtPose=parts.find(pt=>pt.o===piv).po[1];
 const impactP=new THREE.Vector3();
 // owner: 'player' or the enemy that fired; a shell never hits its own shooter
-function shotHits(sp,owner='player'){if(sp.y<gh(sp.x,sp.z)+.05||Math.abs(sp.x)>58||Math.abs(sp.z)>58)return true;
+function shotHits(sp,owner='player'){if(sp.y<gh(sp.x,sp.z)+.05||Math.abs(sp.x)>HALF-2||Math.abs(sp.z)>HALF-2)return true;
   for(const o of targets){const h=o.userData.h;if(Math.abs(o.position.x-sp.x)<h.x+.15&&Math.abs(o.position.y-sp.y)<h.y+.15&&Math.abs(o.position.z-sp.z)<h.z+.15)return true}
   for(const pc of pieces)if(pieceHitShot(pc,sp))return true;
   for(const e of enemies)if(!e.dead&&e!==owner&&Math.hypot(sp.x-e.x,sp.z-e.z)<e.r&&sp.y>e.y-.2&&sp.y<e.y+e.hh)return true;

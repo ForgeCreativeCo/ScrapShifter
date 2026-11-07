@@ -36,3 +36,4 @@ const puffT=tex(128,128,(g,w,h)=>{for(let i=0;i<45;i++){const a=Math.random()*6.
 const glowT=tex(64,64,(g,w,h)=>{const gr=g.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.3,'rgba(255,255,255,.6)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(0,0,w,h)});
 
 const cl=v=>Math.max(0,Math.min(1,v)),ss=v=>v*v*(3-2*v); // clamp01, smoothstep
+function rng(seed){return()=>{seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}} // seeded random (mulberry32), for deterministic layouts

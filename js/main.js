@@ -35,7 +35,7 @@ camR+=((CAM_R[mode]+runK*2.5)*zoom-camR)*Math.min(1,rdt*2);camEl+=(Math.max(.08,
 // artillery: look partway toward the predicted impact and push the fog back so the far marker stays visible
 // the camera stays anchored behind the vehicle (ax,az); only the look target (tx,tz) swings toward the impact
 const ak=AIM.k*.35,yaw=baseYaw+lookOff,ax=car.x+hx*2.5,az=car.z+hz*2.5,tx=L(ax,impactP.x,ak),ty=car.y+lookY,tz=L(az,impactP.z,ak);
-sc.fog.near=L(22,40,AIM.k);sc.fog.far=L(75,130,AIM.k);
+sc.fog.near=L(MAP.fog[0],MAP.fog[0]+18,AIM.k);sc.fog.far=L(MAP.fog[1],MAP.fog[1]+55,AIM.k);
 trauma=Math.max(0,trauma-rdt*1.1);const sh=trauma*trauma*.9,ox=sh*(Math.sin(clock*41)+Math.sin(clock*67))*.5,oy=sh*(Math.sin(clock*53)+Math.sin(clock*29))*.5;
 const cx=ax+Math.cos(yaw)*Math.cos(camEl)*camR,cz=az+Math.sin(yaw)*Math.cos(camEl)*camR;
 cam.position.set(cx+ox,Math.max(gh(cx,cz)+.6,ty+Math.sin(camEl)*camR)+oy,cz);cam.lookAt(tx+ox*.4,ty+oy*.4,tz);
@@ -60,9 +60,13 @@ const DRIVE=['ShiftLeft','ShiftRight','KeyW','KeyA','KeyS','KeyD','ArrowUp','Arr
 window.addEventListener('keyup',e=>{keys[e.code]=false});
 window.addEventListener('blur',()=>{for(const k in keys)keys[k]=false});
 window.addEventListener('keydown',e=>{
-  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return; // let sliders and the copy box use keys
+  if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName))return; // let sliders and the copy box use keys
   if(DRIVE.includes(e.code)){e.preventDefault();keys[e.code]=true;if(audio())engine();return}
   if(e.repeat&&e.code!=='Space')return;if(audio())engine();
   if(e.key==='t'||e.key==='T'){toggleTune();return}
   if(e.key==='1')setMode(0);else if(e.key==='2')setMode(1);else if(e.key==='3')setMode(2);
   else if(e.code==='Space'){e.preventDefault();fire()}else if(e.key==='r'||e.key==='R')resetField();else if(e.key==='m'||e.key==='M')toggleSound();else if(e.key==='f'||e.key==='F')smash()});
+// Map picker: reloads the page with ?map=<id>
+const mapSel=document.getElementById('mapSel');
+Object.entries(MAPS).forEach(([id,m])=>{const o=document.createElement('option');o.value=id;o.textContent='Map: '+m.name;o.selected=id===MAP_ID;mapSel.appendChild(o)});
+mapSel.onchange=()=>{const u=new URL(location.href);u.searchParams.set('map',mapSel.value);location.href=u.href};

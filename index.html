@@ -11,7 +11,8 @@
   body { display:flex; flex-direction:column; }
   #bar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:10px 16px; background:var(--panel); border-bottom:1px solid var(--border); }
   button { background:transparent; color:var(--text); border:1px solid var(--border); border-radius:8px; padding:7px 12px; font:inherit; font-size:14px; cursor:pointer; }
-  button:hover { border-color:var(--accent); }
+  button:hover, select:hover { border-color:var(--accent); }
+  select { background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:7px 10px; font:inherit; font-size:14px; cursor:pointer; }
   button.on { border-color:var(--accent); color:var(--accent); }
   kbd { font-size:11px; color:var(--muted); margin-left:6px; }
   #st { font-size:14px; color:var(--muted); margin-left:8px; }
@@ -50,6 +51,7 @@
   <button id="rst">Reset field<kbd>R</kbd></button>
   <button id="snd"><span>Sound on</span><kbd>M</kbd></button>
   <button id="tuneBtn">Tune<kbd>T</kbd></button>
+  <select id="mapSel" title="Map"></select>
   <span id="st">Loading 3D view…</span>
 </div>
 <div id="tune"></div>
@@ -62,6 +64,7 @@
 window.addEventListener('error',e=>{const s=document.getElementById('st');if(s)s.textContent='Something broke: '+e.message+(e.filename?' ('+e.filename.split('/').pop()+':'+e.lineno+')':'')});
 </script>
 <script src="js/core.js"></script>
+<script src="js/maps.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/world.js"></script>
 <script src="js/vehicle.js"></script>

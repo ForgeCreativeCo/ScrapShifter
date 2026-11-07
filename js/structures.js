@@ -4,7 +4,6 @@
 // Flying debris on a state change is cosmetic only (effects.js chunk()).
 // Classic script sharing one global scope with the other js/ files; load order is set in index.html.
 
-function rng(seed){return()=>{seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}} // mulberry32
 const corrTex=(base,rust)=>tex(256,256,(g,w,h)=>{g.fillStyle=base;g.fillRect(0,0,w,h);
   for(let x=0;x<w;x+=16){const gr=g.createLinearGradient(x,0,x+16,0);gr.addColorStop(0,'rgba(0,0,0,.28)');gr.addColorStop(.5,'rgba(255,255,255,.12)');gr.addColorStop(1,'rgba(0,0,0,.28)');g.fillStyle=gr;g.fillRect(x,0,16,h)}
   grime(g,w,h);rustBlobs(g,w,h,rust*10);g.fillStyle='rgba(20,18,15,.5)';for(let y=40;y<h;y+=96)g.fillRect(0,y,w,3)});
@@ -55,11 +54,9 @@ function setPieceState(p,s,from){p.state=s;p.g.forEach((g,i)=>g.visible=i===s);i
   if(audio()){const d=cam.position.distanceTo(o),t=AC.currentTime+d/343,a=1/(1+d*.04);nz(t,s===2?.9:.5,1400,70,.75*a);th(t,60,24,.6,.7*a);nz(t+.05,.35,3800,900,.3*a,'bandpass')}
   if(s===2)mound(p)}
 // Raise the heightfield under rubble so vehicles climb over the heap (reset by initGround)
-function mound(p){const ext=Math.hypot(p.w,p.d)/2+1,c0=Math.round((p.x+GS/2)/STEP),r0=Math.round((p.z+GS/2)/STEP),n=Math.ceil(ext/STEP);
-  for(let rr=r0-n;rr<=r0+n;rr++)for(let cc=c0-n;cc<=c0+n;cc++){if(rr<0||cc<0||rr>GN||cc>GN)continue;const i=rr*(GN+1)+cc,[lx,lz]=pieceLocal(p,gPos.getX(i),gPos.getZ(i));
-    const ex=Math.max(Math.abs(lx)-p.w/2,0),ez=Math.max(Math.abs(lz)-Math.max(p.d,1)/2,0),e=Math.hypot(ex,ez);
-    if(e<.9){gPos.setY(i,Math.max(gPos.getY(i),p.gy+.08+.42*(1-(e/.9)**2)));gCol[i*3]*=.93;gCol[i*3+1]*=.93;gCol[i*3+2]*=.92}}
-  gPos.needsUpdate=true;gGeo.attributes.color.needsUpdate=true;gGeo.computeVertexNormals()}
+function mound(p){const ext=Math.hypot(p.w,p.d)/2+1;
+  editGround(p.x,p.z,ext,(i,x,z)=>{const[lx,lz]=pieceLocal(p,x,z),e=Math.hypot(Math.max(Math.abs(lx)-p.w/2,0),Math.max(Math.abs(lz)-Math.max(p.d,1)/2,0));
+    if(e<.9){gHt[i]=Math.max(gHt[i],p.gy+.08+.42*(1-(e/.9)**2));gCol[i*3]*=.93;gCol[i*3+1]*=.93;gCol[i*3+2]*=.92}})}
 function resetStructures(){pieces.forEach(p=>{p.hp=p.max;setPieceState(p,0,null)})}
 
 // Build the layout (LAYOUT lives in world.js so scenery can avoid it). Walls are cut into ~2.5 m segments.
@@ -67,7 +64,7 @@ LAYOUT.forEach((it,i)=>{if(it.k==='shed')addPiece('shed',it.x,it.z,it.rot,4.2,4.
   else{const n=Math.max(1,Math.round(it.w/2.5)),sw=it.w/n,c=Math.cos(it.rot),s=Math.sin(it.rot);for(let j=0;j<n;j++){const o=(j-(n-1)/2)*sw;addPiece('wall',it.x+o*c,it.z-o*s,it.rot,sw-.05,STRUCT.wall.d,i*97+j*13+5)}}});
 
 // Indestructible scrap perimeter just outside the play area (hides the map edge; shots already stop at ±58)
-(()=>{const r=rng(4242),per=[];for(let a=-60;a<=60;a+=2.1)per.push([a,-58.9,0],[a,58.9,0],[-58.9,a,PI/2],[58.9,a,PI/2]);
+(()=>{const r=rng(4242),per=[],e=HALF-1.1;for(let a=-HALF;a<=HALF;a+=2.1)per.push([a,-e,0],[a,e,0],[-e,a,PI/2],[e,a,PI/2]);
   [0,1,2].forEach(mi=>{const list=per.filter((_,i)=>i%3===mi),im=new THREE.InstancedMesh(B(2.3,1,.45),corrM[mi],list.length),m=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler();
-    list.forEach(([x,z,ry],i)=>{const h=2.6+r()*3.4;e.set((r()-.5)*.12,ry+(r()-.5)*.25,(r()-.5)*.1);q.setFromEuler(e);m.compose(new THREE.Vector3(x,h/2-.3,z),q,new THREE.Vector3(1,h,1));im.setMatrixAt(i,m)});
+    list.forEach(([x,z,ry],i)=>{const h=2.6+r()*3.4;e.set((r()-.5)*.12,ry+(r()-.5)*.25,(r()-.5)*.1);q.setFromEuler(e);m.compose(new THREE.Vector3(x,gh(x,z)+h/2-.3,z),q,new THREE.Vector3(1,h,1));im.setMatrixAt(i,m)});
     im.castShadow=im.receiveShadow=true;sc.add(im)})})();

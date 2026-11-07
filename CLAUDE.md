@@ -23,8 +23,9 @@ three.js r128 from cdnjs, no build step. Open `index.html` directly in a browser
 | File | Contents |
 |---|---|
 | `js/core.js` | renderer, scene, camera, lights, `PI/rnd/cl/ss`, procedural textures and materials, `mk/B/C` mesh helpers |
+| `js/maps.js` | map definitions (`MAPS`, active `MAP`, `HALF`/`PLAY` bounds); pick with `?map=test` / `?map=town` or the Map dropdown |
 | `js/audio.js` | Web Audio synth (`audio`, `nz`, `th`, boom/fire sounds) |
-| `js/world.js` | deformable ground (`gh`, `crater`), scenery + `solids` colliders, destructible `targets` |
+| `js/world.js` | chunked heightfield terrain (`gh`, `crater`, `editGround`), seeded scenery + `solids` colliders, test-map `targets` |
 | `js/vehicle.js` | vehicle parts and per-mode poses (`parts`, `root`, `piv`, `gun`, `muz`) |
 | `js/effects.js` | particles (`smoke`, `fireball`, `ember`, `chunk`), `explode`, `shatter`, camera `trauma` |
 | `js/structures.js` | destructible walls/sheds (`pieces`), rubble mounds, scrap perimeter |
@@ -39,7 +40,8 @@ three.js r128 from cdnjs, no build step. Open `index.html` directly in a browser
 
 - Vehicle is built from simple parts. Each part has a pose per mode, and transforms are interpolated with a staggered delay.
 - Procedural canvas textures for rust, hazard stripes, concrete, dirt, and smoke.
-- Deformable ground: explosions dig craters and scorch vertex colors.
+- Terrain: a heightfield (0.5 m samples, `gHt`/`gCol`) drawn as 32 m chunk meshes. `editGround()` changes samples and rebuilds only the touched patch (about 1–2 ms per crater on the 360 m map). Normals come from the heightfield, so there are no seams. Explosions dig craters and scorch colors; rubble raises mounds. `gh()` is bilinear.
+- Maps (`js/maps.js`): `test` is the 120 m field with the target gallery. `town` is a 360 m WIP stub: flat core with a grid of sheds and walls, rolling hills outside, start at x=-140. Maps supply size, `height(x,z)`, fog, start, seeded scenery params, structure `layout` and spawn ring. Scenery and layouts use `rng(seed)`, so they're the same for every player.
 - Destructible targets break into physics-ish chunks.
 - Effects: sprite fireballs, lingering smoke, dust surge, embers, slow-mo on big hits, trauma-based camera shake.
 - Sound is synthesized with Web Audio (no audio files).
@@ -64,6 +66,7 @@ three.js r128 from cdnjs, no build step. Open `index.html` directly in a browser
 - Transforming should take time and leave you briefly exposed, so it's a real decision.
 - The mech should look like its own scrap-built thing, not a copy of a famous car-robot franchise.
 - Joe has used Babylon.js on other projects. The prototype uses three.js; switching engines is still open.
+- **The current 120 m field is a test map only.** The real battle map will be much bigger, with a destructible town. Don't tune layouts, spawns or balance to the test field as if final. Keep systems map-agnostic: structures, spawning, AI and waves should take their layout from map data rather than hard-coded positions. Expect the bigger map to need chunked terrain (crater updates touch only nearby tiles), multi-piece buildings that can collapse floor by floor (still swap-state and deterministic), and grid pathfinding for AI in streets.
 
 ## Suggested next steps
 
