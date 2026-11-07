@@ -3,6 +3,7 @@
 // fountain become `solids` (circle colliders) so vehicles and the nav grid respect them. Only maps with MAP.props.
 // Classic script sharing one global scope with the other js/ files; load order is set in index.html.
 
+let carInst=null; // parked car instances, made destructible in js/cars.js
 if(MAP.props){(()=>{const P=MAP.props,r=rng(MAP.seed*7+1),m4=new THREE.Matrix4(),q=new THREE.Quaternion(),UP=new THREE.Vector3(0,1,0),V=(x,y,z)=>new THREE.Vector3(x,y,z);
   const inst=(geo,mat,list,fn,shadow=true)=>{if(!list.length)return null;const im=new THREE.InstancedMesh(geo,mat,list.length);im.frustumCulled=false;im.castShadow=shadow;im.receiveShadow=true;
     list.forEach((it,i)=>{fn(it,i,im);im.setMatrixAt(i,m4)});im.instanceMatrix.needsUpdate=true;if(im.instanceColor)im.instanceColor.needsUpdate=true;sc.add(im);return im};
@@ -34,10 +35,11 @@ if(MAP.props){(()=>{const P=MAP.props,r=rng(MAP.seed*7+1),m4=new THREE.Matrix4()
   // --- parked cars: body (instance-coloured), glass cabin, four wheels
   const C=P.cars,carCols=[0xb8bcc2,0x1f2a36,0x8c1c13,0xe6e3dc,0x2d5d8a,0x3b3f42].map(c=>new THREE.Color(c));
   const along=(c,u,y,s)=>({x:c.x+Math.cos(c.rot)*u+Math.sin(c.rot)*s,y:gh(c.x,c.z)+y,z:c.z-Math.sin(c.rot)*u+Math.cos(c.rot)*s});
-  inst(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0xffffff,roughness:.35,metalness:.4}),C,(c,i,im)=>{const p=along(c,0,.62,0);put(p.x,p.y,p.z,c.rot,4.3,.72,1.82);im.setColorAt(i,carCols[c.c])});
-  inst(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0x1d242b,roughness:.15,metalness:.5}),C,c=>{const p=along(c,-.25,1.22,0);put(p.x,p.y,p.z,c.rot,2.3,.6,1.62)});
-  const wheels=[];C.forEach(c=>[[1.35,.86],[1.35,-.86],[-1.35,.86],[-1.35,-.86]].forEach(([u,s])=>wheels.push({c,u,s})));
-  inst(new THREE.CylinderGeometry(.34,.34,.24,12).rotateX(PI/2),new THREE.MeshStandardMaterial({color:0x151515,roughness:.9}),wheels,w=>{const p=along(w.c,w.u,.34,w.s);put(p.x,p.y,p.z,w.c.rot,1,1,1)});
+  const body=inst(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0xffffff,roughness:.35,metalness:.4}),C,(c,i,im)=>{const p=along(c,0,.62,0);put(p.x,p.y,p.z,c.rot,4.3,.72,1.82);c.col=carCols[c.c].clone();im.setColorAt(i,c.col);c.mBody=m4.clone()});
+  const cabin=inst(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0x1d242b,roughness:.15,metalness:.5}),C,c=>{const p=along(c,-.25,1.22,0);put(p.x,p.y,p.z,c.rot,2.3,.6,1.62);c.mCab=m4.clone()});
+  const wheels=[];C.forEach(c=>{c.wi=[];[[1.35,.86],[1.35,-.86],[-1.35,.86],[-1.35,-.86]].forEach(([u,s])=>wheels.push({c,u,s}))});
+  const wheel=inst(new THREE.CylinderGeometry(.34,.34,.24,12).rotateX(PI/2),new THREE.MeshStandardMaterial({color:0x151515,roughness:.9}),wheels,(w,i)=>{const p=along(w.c,w.u,.34,w.s);put(p.x,p.y,p.z,w.c.rot,1,1,1);w.c.wi.push([i,m4.clone()])});
+  if(C.length)carInst={body,cabin,wheel,list:C};
   C.forEach(c=>[-1.15,1.15].forEach(u=>{const p=along(c,u,0,0);solids.push({x:p.x,z:p.z,r:.95})}));
 
   // --- plaza fountain

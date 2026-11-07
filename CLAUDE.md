@@ -32,6 +32,7 @@ three.js r128 from cdnjs, no build step. Open `index.html` directly in a browser
 | `js/effects.js` | particles (`smoke`, `fireball`, `ember`, `chunk`), `explode`, `shatter`, camera `trauma` |
 | `js/structures.js` | destructible walls/sheds, the shared `pieces` model (`damagePiece`, `obbPush`, `pieceHitShot`, `pieceDist`), spatial grid `piecesNear`, rubble mounds, scrap perimeter |
 | `js/buildings.js` | multi-floor town buildings: facade textures, panels and slabs (instanced), damage visuals, floor-by-floor collapse |
+| `js/cars.js` | destructible parked cars: car pieces, damage visuals on the instances, delayed fuel explosions (chain down rows), fire and smoke (`carsTick`) |
 | `js/nav.js` | enemy navigation: 2 m nav grid, weighted A* (`findPath`), `navWant` steering, `navLine` / `fireLine` sight checks, reachability flood fill |
 | `js/camera.js` | chase camera state, mouse input (aim, click fire, right-drag look) |
 | `js/drive.js` | `car` state, driving, collisions, terrain following, engine sound |
@@ -65,6 +66,7 @@ three.js r128 from cdnjs, no build step. Open `index.html` directly in a browser
 - Crawler AI with nav: out of range they hunt (roam to reachable points within 30 m of the player). Engaged, they path in until within 26 m **with line of fire** (`fireLine`, a 3D check through holes and over low walls), and only fire with it. In the 14–26 m band they strafe and flip direction at walls. Bikes weave in the open and follow streets otherwise.
 - Modern facade styles (`stucco`, `mbrick`, `mconc`, `mglass`) with framed windows, glass lobbies and storefronts (`shop0..2` awning colors, one per building). Facade materials are created lazily (`facadeM` proxy), so a map only builds what it uses. The old shanty styles (`brick`, `concrete`, `corr`) remain for the test field.
 - The camera pulls in when a building piece sits between the vehicle and the camera (`camPull`). Cursor aim checks building panels by marching the spatial grid instead of raycasting instances.
+- Parked cars (js/cars.js) are pieces (kind 'car', `blocks:false`, `dmgMul` 1.6, 70 HP). Intact → damaged (darker, sagging, steaming) → wrecked (charred, flattened, tires gone). A wreck explodes 0.1–0.45 s later (`CAR_BOOM` power 1.8), which wrecks the next car in a bumper-to-bumper row, so rows chain. It burns ~14 s, then smolders. Husks still block movement via the car's `solids` circles but no longer catch shells. Two buggy hits or one mech/artillery hit wrecks a car; a running mech ram wrecks it, a buggy over 8 m/s dents it. Cars park in rows of 2–4 (`townPlan`).
 - Chase camera trails the heading; per-mode distance/height in `CAM_R`/`CAM_EL` (artillery pulls back and up). Drag to look around, eases back after 1.5s.
 - Controls: WASD drive, mouse aim + left click fire (buggy/mech), right-drag look, Shift run (mech), T tuning panel, 1/2/3 switch modes, Space fires, R resets the field, M toggles sound, drag to look, scroll to zoom.
 

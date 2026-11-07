@@ -19,6 +19,9 @@ function collide(fx,fz){let n=null;
   for(const pc of piecesNear(car.x,car.z,CR+1)){const w=obbPush(car,pc,CR);if(!w)continue;n=w;
     // running mech smashes through walls; a buggy just hits them
     if(ramming&&-(w.x*fx+w.z*fz)>.4&&clock-pc.lastRam>.5){pc.lastRam=clock;damagePiece(pc,RAM_STRUCT*runK,new THREE.Vector3(car.x,car.y+1,car.z));car.v*=.6;trauma=Math.min(1,trauma+.3);return}}
+  for(const pc of piecesNear(car.x,car.z,CR+3)){if(pc.kind!=='car')continue;const[lx,lz]=pieceLocal(pc,car.x,car.z);
+    if(Math.abs(lx)<pc.w/2+CR+.2&&Math.abs(lz)<pc.d/2+CR+.2&&clock-pc.lastRam>.6){const hit=ramming?90:mode===0&&Math.abs(car.v)>8?Math.abs(car.v)*2.2:0;
+      if(hit){pc.lastRam=clock;damagePiece(pc,hit,new THREE.Vector3(car.x,car.y+1,car.z));trauma=Math.min(1,trauma+.15)}}}
   if(!n)return;
   const into=-(fx*n.x+fz*n.z)*Math.sign(car.v); // how head-on the hit is
   if(into>.3&&Math.abs(car.v)>6){trauma=Math.min(1,trauma+.04*Math.abs(car.v));clank(Math.min(1,Math.abs(car.v)/15));car.v*=-.2}

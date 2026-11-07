@@ -23,7 +23,7 @@ function townPlan(seed){const r=rng(seed),pick=a=>a[Math.floor(r()*a.length)],B=
   segs.forEach(({h,v,a,b})=>{const at=(u,off)=>h?{x:u,z:v+off}:{x:v+off,z:u},rot=h?0:PI/2;
     for(const sd of[-1,1]){for(let u=a+4;u<b-3;u+=11){const p=at(u,sd*(TP.ROAD/2+TP.WALK*.62));if(free(p.x,p.z,.3))props.trees.push({...p,s:.85+r()*.3})}
       for(let u=a+8;u<b-4;u+=22){const p=at(u,sd*(TP.ROAD/2+.45));props.lamps.push({...p,ax:h?0:-sd,az:h?-sd:0})}
-      for(let u=a+6;u<b-4;u+=7)if(r()<.3){const p=at(u,sd*(TP.ROAD/2-1.25));props.cars.push({...p,rot:rot+(r()<.5?0:PI),c:Math.floor(r()*6)})}}});
+      for(let u=a+6;u<b-4;){if(r()<.32){const n=2+Math.floor(r()*3);for(let k=0;k<n&&u<b-4;k++,u+=5.2){const p=at(u,sd*(TP.ROAD/2-1.25));props.cars.push({...p,rot:rot+(r()<.5?0:PI),c:Math.floor(r()*6)})}u+=4}else u+=7}}}); // rows of 2-4 cars parked bumper to bumper
   // highway in from the west edge
   for(let x=-HALF_T+6;x<-TP.EDGE;x+=24)[-1,1].forEach(sd=>props.lamps.push({x,z:TP.HWY_Z+sd*(TP.ROAD/2+.6),ax:0,az:-sd}));
   // a few concrete jersey barriers narrowing streets (combat cover)

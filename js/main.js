@@ -15,7 +15,7 @@ const kick=rec*(mode===1?0:.15),bob=(stepBob-G.C)*ikK,sway=mode===2?TUNE.sway*ga
 pl.slump+=((pl.dead?1:0)-pl.slump)*Math.min(1,dt*3); // wrecked: sag and list to one side
 root.position.set(car.x-hx*kick,car.y+lift+bob-pl.slump*.35,car.z-hz*kick);
 root.rotation.set(car.roll+sway+pl.slump*.22,car.h,car.pitch+rec*(mode===0?.08:mode===1?.04:.02)-pl.slump*.08);
-poseLegs();smashTick(dt);poseArm();heatTick(dt);reloadT=Math.max(0,reloadT-dt);aimTick(dt);if(firing&&mode!==1)fire(); // hold to keep firing (artillery: one per click)
+poseLegs();smashTick(dt);poseArm();heatTick(dt);carsTick(dt);reloadT=Math.max(0,reloadT-dt);aimTick(dt);if(firing&&mode!==1)fire(); // hold to keep firing (artillery: one per click)
 sun.position.set(car.x+SUN_DIR[0],SUN_DIR[1],car.z+SUN_DIR[2]);if(skyDome)skyDome.position.copy(cam.position);sun.target.position.set(car.x,0,car.z);
 muz.position.x=1.6+1.6*extP.scale.x;
 mf=Math.max(0,mf-dt*10);muz.getWorldPosition(mflash.position);mflash.material.opacity=mf;mflash.scale.setScalar((mode===1?2.6:1.5)*(.6+(1-mf)*.8));muzL.intensity=mf*7;muzL.position.copy(mflash.position);
