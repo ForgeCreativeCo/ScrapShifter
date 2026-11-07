@@ -6,7 +6,7 @@
 // swing [duty,1) it lifts and steps forward. Legs are half a cycle apart, so duty>.5 gives a heavy double-support walk
 // and duty<.5 gives a run with a flight phase. Leg parts live in root space, x forward, y up.
 // TUNE is live-editable from the Tune panel (T) and saved in this browser.
-const TUNE_DEF={walk:4.1,run:12,back:1.8,turn:1.1,accel:6.8,stride:1.7,runStride:2.6,stepH:.45,runStepH:.7,duty:.45,runDuty:.27,crouch:.22,bob:.1,sway:.035,lurch:.55,shake:.205,heatRun:25,heatCool:20,bldDmg:1,collapse:.35}; // Joe's tuned values
+const TUNE_DEF={walk:4.1,run:12,back:1.8,turn:1.1,accel:6.8,stride:1.7,runStride:2.6,stepH:.45,runStepH:.7,duty:.45,runDuty:.27,crouch:.22,bob:.1,sway:.035,lurch:.55,shake:.205,heatRun:22,heatCool:20,bldDmg:2.6,collapse:.6}; // Joe's tuned values
 const TUNE=Object.assign({},TUNE_DEF);try{Object.assign(TUNE,JSON.parse(localStorage.getItem('scrapTune')||'{}'))}catch(e){}
 const HIP_Y=2.5,ANK_Y=.35,L1=1.15,L2=1.05;
 const LEGS=[{th:parts[0],sh:parts[2],ft:parts[4],kn:[parts[6],parts[7]],off:0},{th:parts[1],sh:parts[3],ft:parts[5],kn:[parts[8],parts[9]],off:.5}];
