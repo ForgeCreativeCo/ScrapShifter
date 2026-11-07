@@ -17,7 +17,10 @@ if(MAP.props){(()=>{const P=MAP.props,r=rng(MAP.seed*7+1),m4=new THREE.Matrix4()
   const edge=[],e1=HALF-1.3,e2=HALF-2.9;for(let a=-HALF;a<=HALF;a+=3.4)[[a,-e1],[a,e1],[-e1,a],[e1,a],[a+1.7,-e2],[a+1.7,e2],[-e2,a+1.7],[e2,a+1.7]].forEach(([x,z])=>edge.push({x,z,s:1.3+r()*.7}));
   const allTrees=trees.concat(edge),leafCols=[0x3f6b2a,0x4a7a30,0x557f35,0x36602a,0x5d8a3a].map(c=>new THREE.Color(c));
   inst(new THREE.CylinderGeometry(.14,.22,1,7).translate(0,.5,0),new THREE.MeshStandardMaterial({color:0x5b4532,roughness:.95}),allTrees,(t)=>{const h=2.2*t.s;put(t.x,gh(t.x,t.z),t.z,0,t.s,h,t.s)});
-  inst(new THREE.IcosahedronGeometry(1,1),new THREE.MeshStandardMaterial({color:0xffffff,roughness:.9}),allTrees,(t,i,im)=>{const s=t.s*(.9+r()*.25);put(t.x,gh(t.x,t.z)+2.2*t.s+1.2*s,t.z,r()*6,1.7*s,1.9*s,1.7*s);im.setColorAt(i,leafCols[Math.floor(r()*leafCols.length)])});
+  // canopies: lumpy displaced blobs, darker underneath; street/park trees get a 3-blob cluster, distant ones a single blob
+  const leafM=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.85,normalMap:normalFromCanvas(tex(128,128,(g,w,h)=>{g.fillStyle='#777';g.fillRect(0,0,w,h);for(let i=0;i<900;i++){g.fillStyle=Math.random()<.5?'#fff':'#000';g.beginPath();g.arc(Math.random()*w,Math.random()*h,1+Math.random()*2.5,0,7);g.fill()}}).image,4),normalScale:new THREE.Vector2(.8,.8)});
+  const canopy=(t,i,im)=>{const s=t.s*(.9+r()*.25);put(t.x,gh(t.x,t.z)+2.2*t.s+1.2*s,t.z,r()*6,1.7*s,1.9*s,1.7*s);im.setColorAt(i,leafCols[Math.floor(r()*leafCols.length)])};
+  inst(canopyGeo(true),leafM,trees.slice(0,P.trees.length),canopy);inst(canopyGeo(false),leafM,trees.slice(P.trees.length).concat(edge),canopy);
   trees.forEach(t=>solids.push({x:t.x,z:t.z,r:.45*t.s}));
 
   // --- rocks on the hills
@@ -35,8 +38,8 @@ if(MAP.props){(()=>{const P=MAP.props,r=rng(MAP.seed*7+1),m4=new THREE.Matrix4()
   // --- parked cars: body (instance-coloured), glass cabin, four wheels
   const C=P.cars,carCols=[0xb8bcc2,0x1f2a36,0x8c1c13,0xe6e3dc,0x2d5d8a,0x3b3f42].map(c=>new THREE.Color(c));
   const along=(c,u,y,s)=>({x:c.x+Math.cos(c.rot)*u+Math.sin(c.rot)*s,y:gh(c.x,c.z)+y,z:c.z-Math.sin(c.rot)*u+Math.cos(c.rot)*s});
-  const body=inst(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0xffffff,roughness:.35,metalness:.4}),C,(c,i,im)=>{const p=along(c,0,.62,0);put(p.x,p.y,p.z,c.rot,4.3,.72,1.82);c.col=carCols[c.c].clone();im.setColorAt(i,c.col);c.mBody=m4.clone()});
-  const cabin=inst(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0x1d242b,roughness:.15,metalness:.5}),C,c=>{const p=along(c,-.25,1.22,0);put(p.x,p.y,p.z,c.rot,2.3,.6,1.62);c.mCab=m4.clone()});
+  const body=inst(new THREE.BoxGeometry(1,1,1),(()=>{const m=new THREE.MeshPhysicalMaterial({color:0xffffff,roughness:.38,metalness:.55,clearcoat:1,clearcoatRoughness:.08});m.userData.envTuned=true;return m})(),C,(c,i,im)=>{const p=along(c,0,.62,0);put(p.x,p.y,p.z,c.rot,4.3,.72,1.82);c.col=carCols[c.c].clone();im.setColorAt(i,c.col);c.mBody=m4.clone()});
+  const cabin=inst(new THREE.BoxGeometry(1,1,1),(()=>{const m=new THREE.MeshStandardMaterial({color:0x10161b,roughness:.05,metalness:.85,envMapIntensity:1.3});m.userData.envTuned=true;return m})(),C,c=>{const p=along(c,-.25,1.22,0);put(p.x,p.y,p.z,c.rot,2.3,.6,1.62);c.mCab=m4.clone()});
   const wheels=[];C.forEach(c=>{c.wi=[];[[1.35,.86],[1.35,-.86],[-1.35,.86],[-1.35,-.86]].forEach(([u,s])=>wheels.push({c,u,s}))});
   const wheel=inst(new THREE.CylinderGeometry(.34,.34,.24,12).rotateX(PI/2),new THREE.MeshStandardMaterial({color:0x151515,roughness:.9}),wheels,(w,i)=>{const p=along(w.c,w.u,.34,w.s);put(p.x,p.y,p.z,w.c.rot,1,1,1);w.c.wi.push([i,m4.clone()])});
   if(C.length)carInst={body,cabin,wheel,list:C};
@@ -48,3 +51,13 @@ if(MAP.props){(()=>{const P=MAP.props,r=rng(MAP.seed*7+1),m4=new THREE.Matrix4()
     solids.push({x:f.x,z:f.z,r:3.6})});
 })()}
 function C_(r1,r2,h,s){return new THREE.CylinderGeometry(r1,r2,h,s)}
+
+// A lumpy tree canopy: icosahedron blobs displaced by a smooth position-based wobble (so shared vertices stay joined),
+// squashed a little, shaded darker toward the bottom. cluster=true merges three blobs for a fuller near-camera tree.
+function canopyGeo(cluster){const U=THREE.BufferGeometryUtils;
+  const blob=(det,seed,ox,oy,oz,sc)=>{let g=new THREE.IcosahedronGeometry(1,det);g.deleteAttribute('uv');if(U)g=U.mergeVertices(g);const P=g.attributes.position,col=new Float32Array(P.count*3),v=new THREE.Vector3();
+    for(let i=0;i<P.count;i++){v.fromBufferAttribute(P,i);const k=1+.2*Math.sin(v.x*3.1+seed)*Math.cos(v.y*2.7+seed*.7)*Math.sin(v.z*3.3+seed*1.3)+.07*Math.sin(v.x*9+v.z*7+seed);v.multiplyScalar(k*sc);v.y*=.86;v.x+=ox;v.y+=oy;v.z+=oz;P.setXYZ(i,v.x,v.y,v.z);
+      const sh=.5+.5*cl((v.y-oy)/sc*.5+.55);col[i*3]=col[i*3+1]=col[i*3+2]=sh}
+    g.setAttribute('color',new THREE.BufferAttribute(col,3));g.computeVertexNormals();return g};
+  if(!cluster||!U)return blob(cluster?2:1,1.3,0,0,0,1);
+  return U.mergeBufferGeometries([blob(2,1.3,0,0,0,1),blob(1,4.1,.55,.2,.25,.68),blob(1,7.7,-.45,.3,-.38,.62)])}

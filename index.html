@@ -54,6 +54,7 @@
   <button id="snd"><span>Sound on</span><kbd>M</kbd></button>
   <button id="tuneBtn">Tune<kbd>T</kbd></button>
   <select id="mapSel" title="Map"></select>
+  <select id="gfxSel" title="Graphics"><option value="high">Graphics: High</option><option value="low">Graphics: Low</option></select>
   <span id="st">Loading 3D view…</span>
 </div>
 <div id="tune"></div>
@@ -61,6 +62,16 @@
 <div id="toast"></div><div id="hurt"></div><div id="ebars"></div>
 <canvas id="c"></canvas>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!-- post-processing + geometry helpers (three r128 examples, non-module builds) -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/GammaCorrectionShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/FXAAShader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"></script>
 <script>
 // Report load/runtime errors in the status bar (each js/ file runs on its own, so there is no single try/catch).
 window.addEventListener('error',e=>{const s=document.getElementById('st');if(s)s.textContent='Something broke: '+e.message+(e.filename?' ('+e.filename.split('/').pop()+':'+e.lineno+')':'')});
@@ -68,6 +79,7 @@ window.addEventListener('error',e=>{const s=document.getElementById('st');if(s)s
 <script src="js/core.js"></script>
 <script src="js/townplan.js"></script>
 <script src="js/maps.js"></script>
+<script src="js/render.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/world.js"></script>
 <script src="js/props.js"></script>

@@ -61,6 +61,12 @@ function paintTownGround(size){const W=4096,k=W/size,X=x=>(x+size/2)*k,c=documen
   // zebra crossings on every approach to an intersection
   g.fillStyle='#e9e6dc';TP.LINES.forEach(a=>TP.LINES.forEach(b=>{for(let s=-half+.5;s<half-.3;s+=1){
     [[a+s,b-half-3.2,.5,2.6],[a+s,b+half+.6,.5,2.6],[a-half-3.2,b+s,2.6,.5],[a+half+.6,b+s,2.6,.5]].forEach(([x,z,w,d])=>g.fillRect(X(x),X(z),w*k,d*k))}}));
+  // soft contact shadow (ambient occlusion) at building bases, under parked cars and under trees: drawn small, blurred up
+  {const A=1024,a=A/size,ao=document.createElement('canvas');ao.width=ao.height=A;const q=ao.getContext('2d'),AX=x=>(x+size/2)*a;
+    q.fillStyle='rgba(0,0,0,.55)';(MAP.buildings||[]).forEach(b=>{const w=b.mx*4+1.4,d=b.mz*4+1.4;q.fillRect(AX(b.x-w/2),AX(b.z-d/2),w*a,d*a)});
+    q.fillStyle='rgba(0,0,0,.5)';(MAP.props?.cars||[]).forEach(c=>{const h=Math.abs(Math.sin(c.rot))<.5,w=h?4.6:2.1,d=h?2.1:4.6;q.fillRect(AX(c.x-w/2),AX(c.z-d/2),w*a,d*a)});
+    q.fillStyle='rgba(0,0,0,.28)';(MAP.props?.trees||[]).forEach(tr=>{q.beginPath();q.arc(AX(tr.x),AX(tr.z),2.2*tr.s*a,0,7);q.fill()});
+    g.save();g.filter='blur(10px)';g.drawImage(ao,0,0,W,W);g.restore()}
   // asphalt wear and patches
   for(let i=0;i<2500;i++){g.fillStyle=`rgba(${Math.random()<.5?20:80},${Math.random()<.5?20:80},${Math.random()<.5?22:80},.08)`;const s=3+Math.random()*25;g.fillRect(Math.random()*W,Math.random()*W,s,s*.6)}
   const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=R.capabilities.getMaxAnisotropy();t.generateMipmaps=true;return t}

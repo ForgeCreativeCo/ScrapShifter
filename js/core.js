@@ -26,7 +26,17 @@ g.strokeStyle='rgba(215,208,190,.28)';g.lineWidth=1;for(let i=0;i<45;i++){const 
 g.fillStyle='rgba(14,13,11,.6)';g.fillRect(0,h*.5,w,2);g.fillRect(w*.5,0,2,h);g.fillRect(0,0,w,2);g.fillRect(0,0,2,h);
 for(let i=10;i<w;i+=18){g.fillStyle='rgba(20,18,15,.7)';g.beginPath();g.arc(i,h*.5+7,2.2,0,7);g.arc(w*.5+7,i,2.2,0,7);g.fill();g.fillStyle='rgba(220,210,190,.35)';g.fillRect(i-1,h*.5+5,1,1)}
 const gd=g.createLinearGradient(0,h*.6,0,h);gd.addColorStop(0,'rgba(30,25,18,0)');gd.addColorStop(1,'rgba(30,25,18,.45)');g.fillStyle=gd;g.fillRect(0,0,w,h)})}
-const SM=(t,r=.85,m=.25)=>new THREE.MeshStandardMaterial({map:t,roughness:r,metalness:m});
+// Surface bumps: build a tangent-space normal map from a canvas's brightness (Sobel), so painted texture detail
+// (bricks, rust blotches, panel seams, dirt) catches the light. maxSize downsamples big canvases first.
+function normalFromCanvas(src,strength=2,maxSize=512){const w=Math.min(src.width,maxSize),h=Math.min(src.height,maxSize),c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');g.drawImage(src,0,0,w,h);
+  const d=g.getImageData(0,0,w,h),px=d.data,L=new Float32Array(w*h);for(let i=0;i<w*h;i++)L[i]=(px[i*4]*.299+px[i*4+1]*.587+px[i*4+2]*.114)/255;
+  const at=(x,y)=>L[((y+h)%h)*w+((x+w)%w)];
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const dx=(at(x+1,y-1)+2*at(x+1,y)+at(x+1,y+1))-(at(x-1,y-1)+2*at(x-1,y)+at(x-1,y+1)),dy=(at(x-1,y+1)+2*at(x,y+1)+at(x+1,y+1))-(at(x-1,y-1)+2*at(x,y-1)+at(x+1,y-1));
+    let nx=-dx*strength,ny=dy*strength,nz=1;const l=Math.hypot(nx,ny,nz);const i=(y*w+x)*4;px[i]=(nx/l*.5+.5)*255;px[i+1]=(ny/l*.5+.5)*255;px[i+2]=(nz/l*.5+.5)*255;px[i+3]=255}
+  g.putImageData(d,0,0);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return t}
+const nmCache=new Map();
+const SM=(t,r=.85,m=.25)=>{let n=nmCache.get(t);if(!n){n=normalFromCanvas(t.image,2.2);n.repeat.copy(t.repeat);nmCache.set(t,n)}
+  return new THREE.MeshStandardMaterial({map:t,roughness:r,metalness:m,normalMap:n,normalScale:new THREE.Vector2(.55,.55)})};
 const olive=SM(metalTex('#5d5f3e',3)),primer=SM(metalTex('#6c6a63',2)),rusty=SM(metalTex('#6a462a',7)),steel=SM(metalTex('#3e3d3a',2),.7,.45),hazard=SM(metalTex('#a8832e',4,true)),sand=SM(metalTex('#8a7a5a',3));
 const concrete=SM(tex(256,256,(g,w,h)=>{g.fillStyle='#8a877f';g.fillRect(0,0,w,h);grime(g,w,h);for(let i=0;i<25;i++){g.fillStyle=`rgba(50,45,38,${Math.random()*.25})`;g.beginPath();g.arc(Math.random()*w,Math.random()*h,5+Math.random()*30,0,7);g.fill()}g.strokeStyle='rgba(30,28,24,.6)';for(let i=0;i<6;i++){let x=Math.random()*w,y=Math.random()*h;g.beginPath();g.moveTo(x,y);for(let k=0;k<6;k++){x+=rnd(-20,20);y+=rnd(-20,20);g.lineTo(x,y)}g.stroke()}}),.95,0);
 const tireM=SM(tex(128,128,(g,w,h)=>{g.fillStyle='#1b1a19';g.fillRect(0,0,w,h);for(let i=0;i<w;i+=10){g.fillStyle='#0d0d0c';g.fillRect(i,0,4,h)}grime(g,w,h)}),.95,0);

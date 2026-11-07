@@ -7,7 +7,8 @@
 const GS=MAP.size,STEP=.5,GN=Math.round(GS/STEP),CH=64,NC=Math.ceil(GN/CH); // CH cells per chunk side (32 m)
 const gHt=new Float32Array((GN+1)*(GN+1)),gCol=new Float32Array((GN+1)*(GN+1)*3),gI=(c,r)=>r*(GN+1)+c;
 const MAPSPACE=MAP.ground==='town'; // town: one painted texture across the whole map (roads, lots); otherwise tiled dirt
-const groundM=new THREE.MeshStandardMaterial({map:MAPSPACE?paintTownGround(MAP.size):dirtT,vertexColors:true,roughness:MAPSPACE?.92:1,metalness:0});dirtT.repeat.set(1,1);
+const groundMap=MAPSPACE?paintTownGround(MAP.size):dirtT;dirtT.repeat.set(1,1);
+const groundM=new THREE.MeshStandardMaterial({map:groundMap,vertexColors:true,roughness:MAPSPACE?.92:1,metalness:0,normalMap:normalFromCanvas(groundMap.image,MAPSPACE?1.4:3,MAPSPACE?2048:512),normalScale:new THREE.Vector2(.7,.7)});
 const chunks=[];
 for(let cz=0;cz<NC;cz++)for(let cx=0;cx<NC;cx++){const c0=cx*CH,r0=cz*CH,w=Math.min(GN,c0+CH)-c0+1,h=Math.min(GN,r0+CH)-r0+1,n=w*h;
   const geo=new THREE.BufferGeometry(),pos=new Float32Array(n*3),uv=new Float32Array(n*2),idx=[];

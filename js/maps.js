@@ -6,6 +6,8 @@ const TOWN=townPlan(11); // modern town (js/townplan.js)
 
 const MAPS={
   test:{name:'Test field',size:120,seed:7,fog:[22,75],start:{x:0,z:0,h:0},
+    // dusty overcast junkyard day
+    sky:{top:0x6f747c,horizon:0xb5a993,ground:0x7d7262,fog:0x9C9384,sun:[0xFFD9A8,1.7],sunDir:[10,12,8],hemi:[0xD8C8A8,0x3A3428,.75],cloud:.62,grade:{sat:.94,con:1.1,tint:[1.04,1,.94],vig:.32}},
     height:()=>0,
     scenery:{n:34,rMin:8,rMax:34,keepClear:(x,z)=>x>0&&Math.abs(z)<6}, // keep the target lane clear
     targets:true,
@@ -17,7 +19,7 @@ const MAPS={
     spawn:{ring:46,minDist:32}},
   town:{name:'Town',size:HALF_T*2,seed:11,fog:[70,240],start:{x:-150,z:TP.HWY_Z,h:0},
     // clear day: blue sky dome, bright sun high overhead, light haze toward the horizon
-    sky:{top:0x1f5bb8,horizon:0x7fb0e0,fog:0x93bbe0,sun:[0xfff1dc,2.3],sunDir:[18,40,12],hemi:[0xd2e6ff,0x5c6a4e,.9]},
+    sky:{top:0x1f5bb8,horizon:0x7fb0e0,ground:0x8a9a7c,fog:0x93bbe0,sun:[0xfff1dc,2.3],sunDir:[34,30,20],hemi:[0xd2e6ff,0x5c6a4e,.9],cloud:.38,grade:{sat:1.08,con:1.12,tint:[1.01,1,.98],vig:.22}},
     height:townHeight,ground:'town',groundNoise:.025,perimeter:'trees',
     scenery:{n:0,rMin:0,rMax:0,keepClear:()=>true}, // no junk scenery; street furniture and trees come from props (js/props.js)
     targets:false,buildings:TOWN.buildings,layout:TOWN.layout,props:TOWN.props,
@@ -27,13 +29,8 @@ const MAP_ID=MAPS[new URLSearchParams(location.search).get('map')]?new URLSearch
 const HALF=MAP.size/2,PLAY=HALF-3; // map half-extent; vehicles stay inside ±PLAY, shells stop at ±(HALF-2)
 sc.fog.near=MAP.fog[0];sc.fog.far=MAP.fog[1];
 
-// Sky: optional per-map colours, light, and a gradient dome that follows the camera
-let skyDome=null;
-if(MAP.sky){const S=MAP.sky;sc.background=new THREE.Color(S.horizon);sc.fog.color.setHex(S.fog);sun.color.setHex(S.sun[0]);sun.intensity=S.sun[1];
+// Sky colours and light (the sky dome, reflections and post-processing are built in js/render.js)
+{const S=MAP.sky;sc.background=new THREE.Color(S.horizon);sc.fog.color.setHex(S.fog);sun.color.setHex(S.sun[0]);sun.intensity=S.sun[1];
   hemi.color.setHex(S.hemi[0]);hemi.groundColor.setHex(S.hemi[1]);hemi.intensity=S.hemi[2];
-  cam.far=Math.max(250,MAP.fog[1]+120);cam.updateProjectionMatrix();
-  const rad=cam.far*.85,geo=new THREE.SphereGeometry(rad,32,16),pos=geo.attributes.position,col=new Float32Array(pos.count*3),top=new THREE.Color(S.top),hor=new THREE.Color(S.horizon),c=new THREE.Color();
-  for(let i=0;i<pos.count;i++){const y=pos.getY(i)/rad;c.copy(hor).lerp(top,y>0?Math.pow(y,.5):0);col[i*3]=c.r;col[i*3+1]=c.g;col[i*3+2]=c.b}
-  geo.setAttribute('color',new THREE.BufferAttribute(col,3));
-  skyDome=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.BackSide,fog:false,depthWrite:false}));skyDome.renderOrder=-1;sc.add(skyDome)}
+  cam.far=Math.max(250,MAP.fog[1]+120);cam.updateProjectionMatrix()}
 const SUN_DIR=(MAP.sky&&MAP.sky.sunDir)||[10,12,8];

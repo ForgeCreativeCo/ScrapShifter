@@ -16,7 +16,7 @@ pl.slump+=((pl.dead?1:0)-pl.slump)*Math.min(1,dt*3); // wrecked: sag and list to
 root.position.set(car.x-hx*kick,car.y+lift+bob-pl.slump*.35,car.z-hz*kick);
 root.rotation.set(car.roll+sway+pl.slump*.22,car.h,car.pitch+rec*(mode===0?.08:mode===1?.04:.02)-pl.slump*.08);
 poseLegs();smashTick(dt);poseArm();heatTick(dt);carsTick(dt);fireTick(dt);reloadT=Math.max(0,reloadT-dt);aimTick(dt);if(firing&&mode!==1)fire(); // hold to keep firing (artillery: one per click)
-sun.position.set(car.x+SUN_DIR[0],SUN_DIR[1],car.z+SUN_DIR[2]);if(skyDome)skyDome.position.copy(cam.position);sun.target.position.set(car.x,0,car.z);
+sun.position.set(car.x+SUN_DIR[0],SUN_DIR[1],car.z+SUN_DIR[2]);sun.target.position.set(car.x,0,car.z);
 muz.position.x=1.6+1.6*extP.scale.x;
 mf=Math.max(0,mf-dt*10);muz.getWorldPosition(mflash.position);mflash.material.opacity=mf;mflash.scale.setScalar((mode===1?2.6:1.5)*(.6+(1-mf)*.8));muzL.intensity=mf*7;muzL.position.copy(mflash.position);
 flashL.intensity*=Math.exp(-dt*6);
@@ -44,7 +44,7 @@ const cx=ax+Math.cos(yaw)*Math.cos(camEl)*camR,cz=az+Math.sin(yaw)*Math.cos(camE
   for(let k=1;k<=18;k++){const f=k/18;_camP.set(L(a.x,cx,f),L(a.y,cy,f),L(a.z,cz,f));if(piecesNear(_camP.x,_camP.z,.4).some(pc=>pieceHitShot(pc,_camP))){want=Math.max(.12,(k-1.6)/18);break}}
   camPull+=(want-camPull)*Math.min(1,rdt*(want<camPull?18:2.5));
   cam.position.set(L(a.x,cx,camPull)+ox,Math.max(gh(L(a.x,cx,camPull),L(a.z,cz,camPull))+.6,L(a.y,cy,camPull))+oy,L(a.z,cz,camPull))}cam.lookAt(tx+ox*.4,ty+oy*.4,tz);
-R.render(sc,cam);requestAnimationFrame(loop)}
+renderFrame(rdt);requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
 st.textContent=TXT[0]+' Right-drag to look, scroll to zoom.';
 
@@ -75,3 +75,5 @@ window.addEventListener('keydown',e=>{
 const mapSel=document.getElementById('mapSel');
 Object.entries(MAPS).forEach(([id,m])=>{const o=document.createElement('option');o.value=id;o.textContent='Map: '+m.name;o.selected=id===MAP_ID;mapSel.appendChild(o)});
 mapSel.onchange=()=>{const u=new URL(location.href);u.searchParams.set('map',mapSel.value);location.href=u.href};
+const gfxSel=document.getElementById('gfxSel');gfxSel.value=GFX;gfxSel.onchange=()=>{setGfx(gfxSel.value);gfxSel.blur()};
+tuneEnv(); // after the whole scene exists

@@ -22,17 +22,19 @@ const noise=(g,w,h,n,a)=>{for(let i=0;i<n;i++){const v=Math.random()>.5?255:0;g.
 function stuccoDraw(g,w,h){g.fillStyle='#ddd2bd';g.fillRect(0,0,w,h);noise(g,w,h,900,.05);g.fillStyle='#c9bca2';g.fillRect(0,0,w,h*.05);g.fillStyle='rgba(0,0,0,.06)';g.fillRect(0,h*.05,w,h*.02)}
 function mbrickDraw(g,w,h){g.fillStyle='#d4cdc2';g.fillRect(0,0,w,h);const bh=9,bw=26;for(let y=0,row=0;y<h;y+=bh,row++)for(let x=(row%2)*-bw/2;x<w;x+=bw){g.fillStyle=`rgb(${150+Math.random()*25|0},${66+Math.random()*16|0},${50+Math.random()*12|0})`;g.fillRect(x+1,y+1,bw-2,bh-2)}noise(g,w,h,300,.04)}
 function mconcDraw(g,w,h){g.fillStyle='#c7c5bf';g.fillRect(0,0,w,h);noise(g,w,h,700,.05);g.fillStyle='rgba(70,68,62,.35)';g.fillRect(0,0,w,2);g.fillRect(0,0,2,h);g.fillRect(w/2,0,1,h)}
-function mglassDraw(g,w,h){const gr=g.createLinearGradient(0,0,w,h);gr.addColorStop(0,'#7fa9c9');gr.addColorStop(.45,'#3c6788');gr.addColorStop(1,'#1d3247');g.fillStyle=gr;g.fillRect(0,0,w,h);
+let FM=null;const GLOSS='rgb(0,26,165)',ROUGH='rgb(0,215,0)'; // gloss mask context (set while drawing a modern facade)
+function mglassDraw(g,w,h){if(FM){FM.fillStyle=GLOSS;FM.fillRect(0,0,w,h)}const gr=g.createLinearGradient(0,0,w,h);gr.addColorStop(0,'#7fa9c9');gr.addColorStop(.45,'#3c6788');gr.addColorStop(1,'#1d3247');g.fillStyle=gr;g.fillRect(0,0,w,h);
   g.fillStyle='rgba(255,255,255,.12)';g.beginPath();g.moveTo(w*.1,0);g.lineTo(w*.35,0);g.lineTo(0,h*.6);g.lineTo(0,h*.3);g.fill();
-  g.fillStyle='#596570';for(let x=0;x<=w;x+=w/3)g.fillRect(x-2,0,4,h);for(let y=0;y<=h;y+=h/2)g.fillRect(0,y-3,w,6)}
+  g.fillStyle='#596570';for(let x=0;x<=w;x+=w/3)g.fillRect(x-2,0,4,h);for(let y=0;y<=h;y+=h/2)g.fillRect(0,y-3,w,6);
+  if(FM){FM.fillStyle='rgb(0,110,200)';for(let x=0;x<=w;x+=w/3)FM.fillRect(x-2,0,4,h);for(let y=0;y<=h;y+=h/2)FM.fillRect(0,y-3,w,6)}} // brushed-metal mullions
 const STYLE_DRAW={brick:brickDraw,concrete:concDraw,corr:corrDraw,stucco:stuccoDraw,mbrick:mbrickDraw,mconc:mconcDraw,mglass:mglassDraw},STYLES=Object.keys(STYLE_DRAW),MODERN={stucco:1,mbrick:1,mconc:1,mglass:1};
 const AWNINGS=['#b03a2e','#2e6da4','#2a8a55'];
 function modernWindow(g,w,h,wide){const x0=w*(wide?.08:.24),x1=w*(wide?.92:.76),y0=h*.24,y1=h*.7;g.fillStyle='#efede7';g.fillRect(x0-5,y0-5,x1-x0+10,y1-y0+10);
-  const gr=g.createLinearGradient(0,y0,0,y1);gr.addColorStop(0,'#a9c8de');gr.addColorStop(1,'#26394a');g.fillStyle=gr;g.fillRect(x0,y0,x1-x0,y1-y0);
+  const gr=g.createLinearGradient(0,y0,0,y1);gr.addColorStop(0,'#a9c8de');gr.addColorStop(1,'#26394a');g.fillStyle=gr;g.fillRect(x0,y0,x1-x0,y1-y0);if(FM){FM.fillStyle=GLOSS;FM.fillRect(x0,y0,x1-x0,y1-y0)}
   g.fillStyle='#efede7';g.fillRect((x0+x1)/2-2,y0,4,y1-y0);if(wide)[.33,.67].forEach(f=>g.fillRect(x0+(x1-x0)*f-2,y0,4,y1-y0));g.fillStyle='rgba(0,0,0,.18)';g.fillRect(x0-5,y1+5,x1-x0+10,4)}
 function storefront(g,w,h,aw){g.fillStyle='#2b2b2b';g.fillRect(0,h*.2,w,h*.1);g.fillStyle='rgba(255,255,255,.5)';for(let x=w*.15;x<w*.85;x+=14)g.fillRect(x,h*.235,7,h*.03); // sign band
   g.fillStyle=aw;g.fillRect(0,h*.3,w,h*.07);g.fillStyle='rgba(255,255,255,.35)';for(let x=0;x<w;x+=20)g.fillRect(x,h*.3,10,h*.07); // striped awning
-  const gr=g.createLinearGradient(0,h*.4,0,h);gr.addColorStop(0,'#8fb4cc');gr.addColorStop(1,'#1f2c36');g.fillStyle='#3a3f44';g.fillRect(w*.04,h*.38,w*.92,h*.62);g.fillStyle=gr;g.fillRect(w*.07,h*.41,w*.86,h*.59);
+  const gr=g.createLinearGradient(0,h*.4,0,h);gr.addColorStop(0,'#8fb4cc');gr.addColorStop(1,'#1f2c36');g.fillStyle='#3a3f44';g.fillRect(w*.04,h*.38,w*.92,h*.62);g.fillStyle=gr;g.fillRect(w*.07,h*.41,w*.86,h*.59);if(FM){FM.fillStyle=GLOSS;FM.fillRect(w*.07,h*.41,w*.86,h*.59)}
   g.fillStyle='#3a3f44';g.fillRect(w*.48,h*.41,w*.04,h*.59)}
 function facadeTex(style,variant){return tex(256,256,(g,w,h)=>{
   if(MODERN[style]){ // modern: framed windows, lobbies, storefronts with coloured awnings (variant 'shop0'..'shop2')
@@ -44,7 +46,12 @@ function facadeTex(style,variant){return tex(256,256,(g,w,h)=>{
   else if(variant==='shop'){g.fillStyle='#2a2622';g.fillRect(w*.12,h*.35,w*.76,h*.65);for(let y=h*.37;y<h*.7;y+=7){g.fillStyle='rgba(120,110,95,.5)';g.fillRect(w*.13,y,w*.74,3)} // half-raised roller door
     g.fillStyle='#0f1112';g.fillRect(w*.13,h*.72,w*.74,h*.28);g.fillStyle='#a8832e';g.fillRect(w*.12,h*.33,w*.76,h*.03)}})}
 // Materials are made on first use, so a map only builds the facade textures it actually needs
-const facadeCache={},facadeM=new Proxy({},{get:(_,key)=>{if(!facadeCache[key]){const[st,v]=key.split('_');facadeCache[key]=st==='mglass'?new THREE.MeshStandardMaterial({map:facadeTex(st,v),roughness:.22,metalness:.35}):SM(facadeTex(st,v),MODERN[st]?.8:.9,MODERN[st]?.05:.12)}return facadeCache[key]}}),
+// Modern facades get a gloss mask (glass smooth and reflective, walls rough) and a bump map from the painted detail
+function modernMaterial(st,v){const mc=document.createElement('canvas');mc.width=mc.height=256;FM=mc.getContext('2d');FM.fillStyle=ROUGH;FM.fillRect(0,0,256,256);
+  const map=facadeTex(st,v);FM=null;const mask=new THREE.CanvasTexture(mc);
+  const m=new THREE.MeshStandardMaterial({map,roughnessMap:mask,metalnessMap:mask,roughness:1,metalness:1,normalMap:normalFromCanvas(map.image,st==='mbrick'?3:st==='mglass'?.8:1.8),normalScale:new THREE.Vector2(.6,.6),envMapIntensity:st==='mglass'?1.25:1});
+  m.userData.envTuned=true;return m}
+const facadeCache={},facadeM=new Proxy({},{get:(_,key)=>{if(!facadeCache[key]){const[st,v]=key.split('_');facadeCache[key]=MODERN[st]?modernMaterial(st,v):SM(facadeTex(st,v),.9,.12)}return facadeCache[key]}}),
   plainM=new Proxy({},{get:(_,st)=>facadeM[st+'_plain']});
 const roofM=SM(tex(256,256,(g,w,h)=>{g.fillStyle='#4a4640';g.fillRect(0,0,w,h);grime(g,w,h);g.strokeStyle='rgba(20,18,15,.5)';for(let i=0;i<5;i++){g.beginPath();g.moveTo(Math.random()*w,0);g.lineTo(Math.random()*w,h);g.stroke()}}),.95,.05);
 
@@ -86,7 +93,7 @@ function slabState(p,s){setInst(p,s===0);clearDmg(p);if(s===1){const g=new THREE
 let B_collapsing=false;
 function checkCollapse(B){for(let f=0;f<B.collapsedFrom;f++){const lv=B.levels[f],gone=lv.filter(p=>p.state===2).length;
   if(gone/lv.length>=TUNE.collapse){collapseFrom(B,f);return}}}
-function collapseFrom(B,f){const wasBurning=B.levels.flat().some(p=>p.fire>0);B_collapsing=true;const was=B.collapsedFrom;B.collapsedFrom=f;if(wasBurning&&f===0)fireSmoulder(B);
+function collapseFrom(B,f){if(B.roofMesh)B.roofMesh.visible=false;const wasBurning=B.levels.flat().some(p=>p.fire>0);B_collapsing=true;const was=B.collapsedFrom;B.collapsedFrom=f;if(wasBurning&&f===0)fireSmoulder(B);
   for(let l=f;l<was;l++){B.levels[l].forEach(p=>{if(p.state<2){p.hp=0;setPieceState(p,2,null)}});const sl=B.slabs[l];if(sl.state<2){sl.hp=0;setPieceState(sl,2,null)}}
   if(f>0){const sl=B.slabs[f-1];if(sl.state<1){sl.hp=Math.min(sl.hp,sl.max*.5);setPieceState(sl,1,null)}} // falling floors crack the slab they land on
   B_collapsing=false;
@@ -115,7 +122,7 @@ function structHits(p){const seen=new Set();piecesNear(p.x,p.z,10).forEach(pc=>{
 function structHit(B,dmg){if(B.collapsedFrom===0)return;B.shp-=dmg;
   if(B.shp<=0)collapseFrom(B,0);
   else if(B.shp<=B.shpMax*.5&&B.floors>=2){const f=Math.max(1,Math.ceil(B.floors/2));if(f<B.collapsedFrom)collapseFrom(B,f)}}
-function resetBuildings(){buildings.forEach(B=>{B.collapsedFrom=B.floors;B.shp=B.shpMax;if(B.rubble){sc.remove(B.rubble);B.rubble=null}})}
+function resetBuildings(){buildings.forEach(B=>{B.collapsedFrom=B.floors;B.shp=B.shpMax;if(B.roofMesh)B.roofMesh.visible=true;if(B.rubble){sc.remove(B.rubble);B.rubble=null}})}
 
 // ---------- Create all buildings for this map, then the instanced meshes and the piece grid
 (MAP.buildings||[]).forEach(addBuilding);
@@ -123,3 +130,14 @@ Object.entries(instSpecs).forEach(([key,list])=>{const im=new THREE.InstancedMes
   im.frustumCulled=false;im.castShadow=im.receiveShadow=true; // instances span the map; the base sphere would cull them wrongly
   list.forEach((p,i)=>{p.inst={mesh:im,i,m:panelMatrix(p)};im.setMatrixAt(i,p.inst.m);im.setColorAt(i,new THREE.Color(1,1,1))}); /* instance colour = fire scorch */im.instanceMatrix.needsUpdate=true;sc.add(im);bldMeshes.push(im)});
 buildPieceGrid();
+// Rooftop detail per building (parapet, AC units, sometimes a water tank or antenna), merged into one mesh and hidden
+// once the top floor comes down
+const roofDetailM=SM(tex(128,128,(g,w,h)=>{g.fillStyle='#9a978f';g.fillRect(0,0,w,h);grime(g,w,h)}),.85,.15);
+if(THREE.BufferGeometryUtils&&MODERN[(MAP.buildings||[])[0]?.style])buildings.forEach((B,bi)=>{const r=rng(bi*31+7),parts=[],top=FH0+(B.floors-1)*FH,M=new THREE.Matrix4();
+  const box=(w,h,d,x,y,z,ry=0)=>{const g=new THREE.BoxGeometry(w,h,d);g.applyMatrix4(M.makeRotationY(ry));g.applyMatrix4(M.makeTranslation(x,y,z));parts.push(g)};
+  const cyl=(rt,rb,h,x,y,z)=>{const g=new THREE.CylinderGeometry(rt,rb,h,14);g.applyMatrix4(M.makeTranslation(x,y,z));parts.push(g)};
+  [[0,B.D/2-.15,B.W,.3],[0,-B.D/2+.15,B.W,.3],[B.W/2-.15,0,.3,B.D-.6],[-B.W/2+.15,0,.3,B.D-.6]].forEach(([x,z,w,d])=>box(w,.8,d,x,.4,z)); // parapet
+  for(let i=0;i<1+Math.floor(r()*3);i++)box(1.5,1,1.1,(r()-.5)*(B.W-4),.5,(r()-.5)*(B.D-4),r()<.5?0:PI/2); // AC units
+  if(B.floors>=2&&B.floors<=5&&r()<.35){const x=(r()-.5)*(B.W-5),z=(r()-.5)*(B.D-5);cyl(1.1,1.1,1.8,x,2.3,z);cyl(1.15,.2,.5,x,3.45,z);[[.7,.7],[.7,-.7],[-.7,.7],[-.7,-.7]].forEach(([a,c])=>box(.12,1.4,.12,x+a,.7,z+c))} // water tank
+  if(B.floors>=6){const x=(r()-.5)*(B.W-4),z=(r()-.5)*(B.D-4);cyl(.06,.09,5,x,2.5,z);box(1.4,.06,.06,x,4,z)} // antenna
+  const mesh=new THREE.Mesh(THREE.BufferGeometryUtils.mergeBufferGeometries(parts),roofDetailM);mesh.position.set(B.x,B.gy+top,B.z);mesh.rotation.y=B.rot;mesh.castShadow=mesh.receiveShadow=true;sc.add(mesh);B.roofMesh=mesh});
