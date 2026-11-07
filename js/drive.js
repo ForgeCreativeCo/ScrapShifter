@@ -30,7 +30,7 @@ function drive(dt){
     car.v=Math.max(-7,Math.min(17,car.v));
     car.h+=t*2.2*Math.min(1,Math.abs(car.v)/4)*Math.sign(car.v)*(1-Math.abs(car.v)/45)*dt;
   }else if(!run&&mode===2){ // mech: slow walk, turns in place
-    const tv=f>0?(held('ShiftLeft','ShiftRight')?TUNE.run:TUNE.walk):f<0?-TUNE.back:0; // hold Shift to run
+    const tv=f>0?(held('ShiftLeft','ShiftRight')&&!HEAT.over?TUNE.run:TUNE.walk):f<0?-TUNE.back:0; // hold Shift to run
     car.v+=(tv-car.v)*Math.min(1,dt*TUNE.accel);car.h+=t*TUNE.turn*(1-.4*runK)*dt;
   }else{ // artillery is planted (the turret aims instead, see aimTick); transforming bleeds off speed
     car.v*=Math.exp(-dt*(run?3:6))}

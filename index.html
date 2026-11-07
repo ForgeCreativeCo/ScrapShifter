@@ -29,6 +29,8 @@
   #hud .lbl { color:var(--muted); font-size:11px; letter-spacing:.06em; text-transform:uppercase; }
   #hpBar { width:150px; height:8px; background:#3a352e; border-radius:4px; overflow:hidden; }
   #hpFill { height:100%; width:100%; background:#8fae5a; transition:width .15s, background .3s; }
+  #heatBar { width:90px; height:8px; background:#3a352e; border-radius:4px; overflow:hidden; }
+  #heatFill { height:100%; width:0; background:#c9b48a; }
   #hpNum { min-width:26px; text-align:right; font-variant-numeric:tabular-nums; }
   #toast { position:fixed; left:50%; top:96px; transform:translateX(-50%); background:rgba(29,27,24,.88); border:1px solid var(--border); border-radius:8px; padding:8px 14px; font-size:14px; opacity:0; transition:opacity .3s; pointer-events:none; z-index:4; white-space:nowrap; }
   #toast.show { opacity:1; }
@@ -51,7 +53,7 @@
   <span id="st">Loading 3D view…</span>
 </div>
 <div id="tune"></div>
-<div id="hud"><div class="pill"><span class="lbl">Hull</span><div id="hpBar"><div id="hpFill"></div></div><span id="hpNum">100</span></div><div class="pill"><span class="lbl">Kills</span><span id="kills">0</span></div></div>
+<div id="hud"><div class="pill"><span class="lbl">Hull</span><div id="hpBar"><div id="hpFill"></div></div><span id="hpNum">100</span></div><div class="pill" id="heatPill" style="display:none"><span class="lbl">Heat</span><div id="heatBar"><div id="heatFill"></div></div></div><div class="pill"><span class="lbl">Kills</span><span id="kills">0</span></div></div>
 <div id="toast"></div><div id="hurt"></div><div id="ebars"></div>
 <canvas id="c"></canvas>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
