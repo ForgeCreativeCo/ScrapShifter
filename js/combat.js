@@ -31,7 +31,8 @@ function damageEnemy(e,d){if(e.dead)return;e.hp-=d;e.flash=1;sparks(new THREE.Ve
     e.g.traverse(o=>{if(o.isMesh)o.material=charM});explode(new THREE.Vector3(e.x,e.y+.8,e.z),1.5);toast('Crawler destroyed')}}
 function applyBlast(p,pw){const R=2.3*pw+1.2;
   if(!pl.dead){const d=Math.hypot(p.x-car.x,p.y-(car.y+1),p.z-car.z);if(d<R)damagePlayer(PL_DMG*pw*(1-d/R),p)}
-  enemies.slice().forEach(e=>{if(e.dead)return;const d=Math.hypot(p.x-e.x,p.y-(e.y+.8),p.z-e.z);if(d<R)damageEnemy(e,EN_DMG*pw*(1-d/R))})}
+  enemies.slice().forEach(e=>{if(e.dead)return;const d=Math.hypot(p.x-e.x,p.y-(e.y+.8),p.z-e.z);if(d<R)damageEnemy(e,EN_DMG*pw*(1-d/R))});
+  pieces.forEach(pc=>{if(pc.state===2)return;const d=pieceDist(pc,p);if(d<R)damagePiece(pc,STRUCT_DMG*pw*(1-d/R),p)})}
 function spawnShell(p,v,pw,owner,r,col,gs){const s=mk(new THREE.SphereGeometry(r,10,8),steel,p.x,p.y,p.z);s.add(S(glowT,col,true,.9,gs));const sh={m:s,pw,v,tt:0,owner};shots.push(sh);return sh}
 // Step a shell forward without spawning it; returns where it would land (used for enemy incoming warnings)
 function simShell(p,v,owner){p=p.clone();v=v.clone();const h=1/60;for(let i=0;i<900;i++){v.y-=9.8*h;p.addScaledVector(v,h);if(shotHits(p,owner))return p}return null}
@@ -84,6 +85,7 @@ function enemyTick(e,dt){
   for(const s of solids)if(pushOut(e,s.x,s.z,1.5+s.r)&&!engage)e.wp=null;
   for(const o of targets){const h=o.userData.h;pushOut(e,Math.max(o.position.x-h.x,Math.min(e.x,o.position.x+h.x)),Math.max(o.position.z-h.z,Math.min(e.z,o.position.z+h.z)),1.5)}
   for(const o of enemies)if(o!==e&&!o.dead)pushOut(e,o.x,o.z,3);
+  for(const pc of pieces)if(pc.state<2&&obbPush(e,pc,1.5)&&!engage)e.wp=null;
   if(!pl.dead)pushOut(e,car.x,car.z,1.5+CR); // crawler stops against the player
   const lim=GS/2-4;e.x=Math.max(-lim,Math.min(lim,e.x));e.z=Math.max(-lim,Math.min(lim,e.z));
   const sx=Math.sin(e.h),sz=Math.cos(e.h),hf=gh(e.x+fx*1.2,e.z+fz*1.2),hb=gh(e.x-fx*1.2,e.z-fz*1.2),hl=gh(e.x+sx*.9,e.z+sz*.9),hr=gh(e.x-sx*.9,e.z-sz*.9),k=Math.min(1,dt*8);
