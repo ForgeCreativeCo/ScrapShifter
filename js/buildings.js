@@ -55,7 +55,8 @@ const panelMatrix=p=>{_bq.setFromAxisAngle(new THREE.Vector3(0,1,0),p.rot);_bp.s
 function addBuilding(b,bi){const r=rng(MAP.seed*1000+bi*17+3),c=Math.cos(b.rot),s=Math.sin(b.rot),W=b.mx*MOD,D=b.mz*MOD;
   const toW=(lx,lz)=>[b.x+lx*c+lz*s,b.z-lx*s+lz*c];
   const gy=Math.min(gh(b.x,b.z),...[[1,1],[1,-1],[-1,1],[-1,-1]].map(([u,v])=>gh(...toW(u*W/2,v*D/2))))-.1;
-  const B={...b,W,D,c,s,gy,levels:[],slabs:[],collapsedFrom:b.floors,rubble:null};buildings.push(B);const shopC=Math.floor(r()*3); // one awning colour per building
+  const shp=STRUCT_BASE+b.mx*b.mz*b.floors*STRUCT_PER; // structural HP: how many artillery shells it takes to level
+  const B={...b,W,D,c,s,gy,levels:[],slabs:[],collapsedFrom:b.floors,rubble:null,shp,shpMax:shp};buildings.push(B);const shopC=Math.floor(r()*3); // one awning colour per building
   const piece=(o)=>{const p={c:Math.cos(o.rot),s:Math.sin(o.rot),state:0,lastRam:-9,bld:B,seed:Math.floor(r()*1e9),onState:o.kind==='slab'?slabState:panelState,...o};p.max=p.hp;pieces.push(p);return p};
   for(let f=0;f<b.floors;f++){const y0=gy+(f?FH0+(f-1)*FH:0),h=f?FH:FH0,lvl=[];B.levels.push(lvl);
     const modern=MODERN[b.style],add=(lx,lz,rot,w)=>{const[x,z]=toW(lx,lz);let v=f===0?(r()<(modern?.55:.4)?'shop':r()<.55?'win':'plain'):(r()<(modern?.85:.72)?'win':'plain');
@@ -104,7 +105,17 @@ function collapseFrom(B,f){const wasBurning=B.levels.flat().some(p=>p.fire>0);B_
   const o=new THREE.Vector3(B.x,cy,B.z),d=cam.position.distanceTo(o);trauma=Math.min(1,trauma+.7/(1+d*.03));if(d<30)slowT=.12;
   if(audio()){const t=AC.currentTime+d/343,a=1/(1+d*.025);nz(t,2.6,900,40,.95*a);th(t,45,18,2.2,.9*a);nz(t+.1,1.2,3000,300,.35*a,'bandpass');nz(t+.5,1.8,600,40,.6*a)}}
 const B_box=(w,h,d)=>new THREE.BoxGeometry(w,h,d);
-function resetBuildings(){buildings.forEach(B=>{B.collapsedFrom=B.floors;if(B.rubble){sc.remove(B.rubble);B.rubble=null}})}
+// Artillery structural hits. Every heavy shell that lands on or near a building hits its frame: full ART_STRUCT
+// within 4 m of what's left of the building, fading to nothing at 10 m. Structural HP = STRUCT_BASE + modules × floors × STRUCT_PER,
+// so small buildings fall to one shell; big ones lose their top half to the first and come down with the second.
+const ART_STRUCT=150,STRUCT_BASE=100,STRUCT_PER=.7; // biggest town building (5x5, 8 floors) = 240 HP = 2 shells
+function structHits(p){const seen=new Set();piecesNear(p.x,p.z,10).forEach(pc=>{if(pc.bld&&pc.bld.collapsedFrom>0)seen.add(pc.bld)});
+  seen.forEach(B=>{let d=1e9;B.levels.flat().forEach(q=>{if(q.state<2)d=Math.min(d,pieceDist(q,p))});B.slabs.forEach(q=>{if(q.state<2)d=Math.min(d,pieceDist(q,p))});
+    const dmg=ART_STRUCT*cl(1-(d-4)/6);if(dmg>0)structHit(B,dmg)})}
+function structHit(B,dmg){if(B.collapsedFrom===0)return;B.shp-=dmg;
+  if(B.shp<=0)collapseFrom(B,0);
+  else if(B.shp<=B.shpMax*.5&&B.floors>=2){const f=Math.max(1,Math.ceil(B.floors/2));if(f<B.collapsedFrom)collapseFrom(B,f)}}
+function resetBuildings(){buildings.forEach(B=>{B.collapsedFrom=B.floors;B.shp=B.shpMax;if(B.rubble){sc.remove(B.rubble);B.rubble=null}})}
 
 // ---------- Create all buildings for this map, then the instanced meshes and the piece grid
 (MAP.buildings||[]).forEach(addBuilding);

@@ -3,7 +3,8 @@
 
 // ---------- Aiming: artillery turret + predicted impact marker ----------
 // FIRE per mode: [muzzle speed, blast power]. Blast radius on targets is 2.3*power (see explode).
-const FIRE=[[30,.7],[24,1.6],[32,1.05]],RELOAD=[.3,2.2,.6];let reloadT=0;
+// Buggy: steady, punchy rounds. Artillery: heavy shells (also structural hits on buildings, see structHit). Mech: rapid fire.
+const FIRE=[[30,.9],[24,2.4],[34,.7]],RELOAD=[.6,2.4,.2];let reloadT=0;
 const AIM={yaw:0,elev:.25,k:0},ELEV_MIN=.03,ELEV_MAX=1.45,YAW_MAX=PI*.75;
 const pivArtPose=parts.find(pt=>pt.o===piv).po[1];
 const impactP=new THREE.Vector3();

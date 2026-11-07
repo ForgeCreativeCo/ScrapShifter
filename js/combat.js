@@ -31,7 +31,7 @@ function damageEnemy(e,d){if(e.dead)return;e.hp-=d;e.flash=1;sparks(new THREE.Ve
 function killEnemy(e,credit){e.hp=0;e.dead=true;e.deadT=0;e.bar.style.display='none';if(credit){kills++;killsEl.textContent=kills}
   e.g.traverse(o=>{if(o.isMesh)o.material=charM});const bike=e.type==='bike';
   explode(new THREE.Vector3(e.x,e.y+(bike?.9:.8),e.z),bike?BIKE.pw:1.5);if(credit)toast(bike?'Rusher down':'Crawler destroyed')}
-function applyBlast(p,pw){const R=2.3*pw+1.2;
+function applyBlast(p,pw,heavy){const R=2.3*pw+1.2;if(heavy)structHits(p);
   if(!pl.dead){const d=Math.hypot(p.x-car.x,p.y-(car.y+1),p.z-car.z);if(d<R)damagePlayer(PL_DMG*pw*(1-d/R),p)}
   enemies.slice().forEach(e=>{if(e.dead)return;const d=Math.hypot(p.x-e.x,p.y-(e.y+.8),p.z-e.z);if(d<R)damageEnemy(e,EN_DMG*pw*(1-d/R))});
   piecesNear(p.x,p.z,R).forEach(pc=>{const d=pieceDist(pc,p);if(d<R)damagePiece(pc,STRUCT_DMG*pw*(1-d/R),p)})}

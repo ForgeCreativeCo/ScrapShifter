@@ -22,7 +22,7 @@ mf=Math.max(0,mf-dt*10);muz.getWorldPosition(mflash.position);mflash.material.op
 flashL.intensity*=Math.exp(-dt*6);
 for(let i=shots.length-1;i>=0;i--){const s=shots[i];s.v.y-=9.8*dt;s.m.position.addScaledVector(s.v,dt);s.tt+=dt;if(s.tt>.025){s.tt=0;smoke(s.m.position.clone(),new THREE.Vector3(0,.15,0),0x8C857A,.15,.6,1,.4)}
 const sp=s.m.position;const hit=shotHits(sp,s.owner);
-if(hit){const p=sp.clone();p.y=Math.max(gh(p.x,p.z)+.1,p.y);sc.remove(s.m);if(s.warn)sc.remove(s.warn);shots.splice(i,1);explode(p,s.pw)}
+if(hit){const p=sp.clone();p.y=Math.max(gh(p.x,p.z)+.1,p.y);sc.remove(s.m);if(s.warn)sc.remove(s.warn);shots.splice(i,1);explode(p,s.pw,s.heavy)}
 else if(s.warn){s.warn.material.opacity=.35+.35*Math.sin(clock*18)}}
 combatTick(dt);
 for(let i=fx.length-1;i>=0;i--){const f=fx[i];if(f.w>0){f.w-=dt;if(f.o)f.o.visible=false;continue}if(f.o)f.o.visible=true;f.k+=dt/f.d;if(f.k>=1){if(f.o){sc.remove(f.o);if(f.o.isSprite)f.o.material.dispose()}fx.splice(i,1);continue}f.u(f,f.k,dt)}
@@ -50,9 +50,9 @@ st.textContent=TXT[0]+' Right-drag to look, scroll to zoom.';
 
 // ---------- Controls ----------
 function fire(){if(run||reloadT>0||pl.dead)return;reloadT=RELOAD[mode];const p=new THREE.Vector3();muz.getWorldPosition(p);const q=new THREE.Quaternion();gun.getWorldQuaternion(q);const dir=new THREE.Vector3(1,0,0).applyQuaternion(q);const [spd,pw]=FIRE[mode];
-spawnShell(p,dir.clone().multiplyScalar(spd),pw,'player',mode===1?.14:.1,0xFFAA50,mode===1?.9:.6);
-rec=mode===1?1:.7;mf=1;trauma=Math.min(1,trauma+(mode===1?.35:.18));fireSnd(mode);
-for(let i=0;i<(mode===1?10:5);i++)smoke(p.clone(),dir.clone().multiplyScalar(rnd(1.5,5)).add(new THREE.Vector3(rnd(-.6,.6),rnd(0,.8),rnd(-.6,.6))),0x8C857A,rnd(.3,.6),rnd(1.5,2.6)*(mode===1?1.4:1),rnd(1.4,2.6),.55);
+const sh=spawnShell(p,dir.clone().multiplyScalar(spd),pw,'player',mode===1?.2:.1,0xFFAA50,mode===1?1.2:.6);sh.heavy=mode===1;
+rec=mode===1?1:mode===2?.35:.7;mf=mode===2?.7:1;trauma=Math.min(1,trauma+(mode===1?.45:mode===2?.05:.18));fireSnd(mode); // mech: light kick per round, it fires a stream
+for(let i=0;i<(mode===1?14:mode===2?2:5);i++)smoke(p.clone(),dir.clone().multiplyScalar(rnd(1.5,5)).add(new THREE.Vector3(rnd(-.6,.6),rnd(0,.8),rnd(-.6,.6))),0x8C857A,rnd(.3,.6),rnd(1.5,2.6)*(mode===1?1.4:1),rnd(1.4,2.6),.55);
 if(mode===1){for(let i=0;i<16;i++){const a=Math.random()*6.28,x=car.x+Math.cos(a)*1.4,z=car.z+Math.sin(a)*1.4;smoke(new THREE.Vector3(x,gh(x,z)+.3,z),new THREE.Vector3(Math.cos(a)*rnd(3,6),rnd(.2,.7),Math.sin(a)*rnd(3,6)),0x8A7A60,.6,2.6,rnd(1.4,2.4),.55)}}}
 function resetField(){buildTargets();initGround();resetStructures();resetBuildings();resetFires();resetCombat();HEAT.v=0;HEAT.over=false}
 const sb=document.getElementById('snd');

@@ -20,10 +20,10 @@ if(smk&&k<.25){tt+=dt;if(tt>.04){tt=0;smoke(c.position.clone(),new THREE.Vector3
 
 // ---------- Explosion ----------
 let trauma=0,slowT=0;
-function explode(p,pw){
-crater(p,pw);applyBlast(p,pw);
+function explode(p,pw,heavy){
+crater(p,heavy?pw*.8:pw);applyBlast(p,pw,heavy);if(heavy)heavyBlast(p,pw);
 flashL.position.set(p.x,p.y+1.5,p.z);flashL.intensity=14*pw;
-const cd=cam.position.distanceTo(p);trauma=Math.min(1,trauma+.75*pw/(1+cd*.04));if(pw>1.2)slowT=.09;
+const cd=cam.position.distanceTo(p);trauma=Math.min(1,trauma+.75*pw/(1+cd*.04));if(pw>1.2)slowT=heavy?.16:.09;
 boomSnd(pw,cd);
 const core=S(glowT,0xFFF6E0,true,1,1);core.position.copy(p);addFx(core,.14,(f,k)=>{core.scale.setScalar((1+k*5)*pw*1.4);core.material.opacity=1-k});
 for(let i=0;i<Math.round(11*pw);i++){const v=new THREE.Vector3(rnd(-1,1),rnd(.2,1.2),rnd(-1,1)).normalize().multiplyScalar(rnd(2,6)*pw);fireball(p.clone().add(new THREE.Vector3(rnd(-.3,.3),rnd(0,.4),rnd(-.3,.3))),v,rnd(.6,1.1)*pw,rnd(2.2,3.4)*pw,rnd(.45,.85))}
@@ -36,3 +36,11 @@ const r=2.3*pw;targets.slice().forEach(o=>{const d=o.position.distanceTo(p);if(d
 // Break a destructible target into flying chunks, thrown away from `from` at speed spd
 function shatter(o,from,spd){const hv=o.userData.h,m=o.userData.m;for(let i=0;i<10;i++){const q=o.position.clone().add(new THREE.Vector3(rnd(-1,1)*hv.x,rnd(-1,1)*hv.y,rnd(-1,1)*hv.z));chunk(q,hv.y*rnd(.35,.7),m,spd,from,Math.random()<.3)}
   sc.remove(o);const i=targets.indexOf(o);if(i>=0)targets.splice(i,1)}
+
+// Artillery shell extras: a ground shockwave ring, a sub-bass thump and a long rumble
+const shockGeo=new THREE.RingGeometry(.86,1,48).rotateX(-PI/2);
+function heavyBlast(p,pw){const g=gh(p.x,p.z),ring=new THREE.Mesh(shockGeo,new THREE.MeshBasicMaterial({color:0xd9cdb8,transparent:true,opacity:.7,depthWrite:false,side:THREE.DoubleSide}));
+  ring.position.set(p.x,g+.25,p.z);addFx(ring,.7,(f,k)=>{ring.scale.setScalar(1+k*7*pw);ring.material.opacity=.7*(1-k)**1.5});
+  for(let i=0;i<24;i++){const a=i/24*6.28,s=rnd(9,14);smoke(new THREE.Vector3(p.x+Math.cos(a)*1.5,g+.3,p.z+Math.sin(a)*1.5),new THREE.Vector3(Math.cos(a)*s,rnd(.3,1),Math.sin(a)*s),0x9a8c72,.8,rnd(3,4.5),rnd(2.2,3.4),.55)}
+  const core=S(glowT,0xFFF2D0,true,1,1);core.position.copy(p);addFx(core,.22,(f,k)=>{core.scale.setScalar((2+k*14)*pw*.6);core.material.opacity=1-k});
+  if(audio()){const d=cam.position.distanceTo(p),t=AC.currentTime+d/343,a=1/(1+d*.02);th(t,60,16,2.2,1*a);nz(t+.05,3.2,700,30,.7*a);nz(t,.4,9000,1500,.5*a)}}
