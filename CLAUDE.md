@@ -28,7 +28,8 @@ three.js r128 from cdnjs, no build step. Open `index.html` directly in a browser
 | `js/world.js` | chunked heightfield terrain (`gh`, `crater`, `editGround`), seeded scenery + `solids` colliders, test-map `targets` |
 | `js/vehicle.js` | vehicle parts and per-mode poses (`parts`, `root`, `piv`, `gun`, `muz`) |
 | `js/effects.js` | particles (`smoke`, `fireball`, `ember`, `chunk`), `explode`, `shatter`, camera `trauma` |
-| `js/structures.js` | destructible walls/sheds (`pieces`), rubble mounds, scrap perimeter |
+| `js/structures.js` | destructible walls/sheds, the shared `pieces` model (`damagePiece`, `obbPush`, `pieceHitShot`, `pieceDist`), spatial grid `piecesNear`, rubble mounds, scrap perimeter |
+| `js/buildings.js` | multi-floor town buildings: facade textures, panels and slabs (instanced), damage visuals, floor-by-floor collapse |
 | `js/camera.js` | chase camera state, mouse input (aim, click fire, right-drag look) |
 | `js/drive.js` | `car` state, driving, collisions, terrain following, engine sound |
 | `js/mech.js` | mech gait + leg IK, `TUNE` values and the Tune panel |
@@ -41,7 +42,7 @@ three.js r128 from cdnjs, no build step. Open `index.html` directly in a browser
 - Vehicle is built from simple parts. Each part has a pose per mode, and transforms are interpolated with a staggered delay.
 - Procedural canvas textures for rust, hazard stripes, concrete, dirt, and smoke.
 - Terrain: a heightfield (0.5 m samples, `gHt`/`gCol`) drawn as 32 m chunk meshes. `editGround()` changes samples and rebuilds only the touched patch (about 1–2 ms per crater on the 360 m map). Normals come from the heightfield, so there are no seams. Explosions dig craters and scorch colors; rubble raises mounds. `gh()` is bilinear.
-- Maps (`js/maps.js`): `test` is the 120 m field with the target gallery. `town` is a 360 m WIP stub: flat core with a grid of sheds and walls, rolling hills outside, start at x=-140. Maps supply size, `height(x,z)`, fog, start, seeded scenery params, structure `layout` and spawn ring. Scenery and layouts use `rng(seed)`, so they're the same for every player.
+- Maps (`js/maps.js`): `test` is the 120 m field with the target gallery. `town` is 360 m: a 5×5 grid of 30 m blocks around a plaza, with ~45 buildings (1–3 floors, taller near the center), backyard sheds and street barricades. Rolling hills outside; start at x=-140. Maps supply size, `height(x,z)`, fog, start, seeded scenery params, structure `layout` and spawn ring. Scenery and layouts use `rng(seed)`, so they're the same for every player.
 - Destructible targets break into physics-ish chunks.
 - Effects: sprite fireballs, lingering smoke, dust surge, embers, slow-mo on big hits, trauma-based camera shake.
 - Sound is synthesized with Web Audio (no audio files).
@@ -56,6 +57,7 @@ three.js r128 from cdnjs, no build step. Open `index.html` directly in a browser
 - Mech close-range role (mech.js/combat.js): F = shield bash (`SMASH_*`): wind-up, lunge, swing of the `ARM` parts about the shoulder. One-shots crawlers (knockback + stun), smashes targets and walls, adds 12 heat. The shield blocks 75% of blasts from the front arc (`shieldBlocks`). A running mech rams: shatters targets, smashes walls (`RAM_STRUCT`) and shoves/damages crawlers (`RAM_DMG`).
 - Mech heat (`HEAT`, mech.js): running builds heat, overheating at 100 vents steam and locks run + bash until it drops to 35. Rates are in the Tune panel.
 - Structures (js/structures.js, layout in `LAYOUT` in world.js): wall segments and sheds with swap states intact → damaged (≤50% HP) → rubble. Deterministic: seeded shapes, HP thresholds, rubble raises a terrain `mound`. They block movement (`obbPush`), shells (`pieceHitShot`) and crawler fire, and take blast/bash/ram damage. An indestructible instanced scrap perimeter at ±58.9 hides the map edge.
+- Buildings (js/buildings.js, `MAP.buildings`: x, z, rot, mx×mz 4 m modules, floors, style brick/concrete/corr): one wall-panel piece per module per floor per side, plus a slab per level. Ground floor is 5.6 m tall (workshop bays, so the mech fits), upper floors 3.4 m. Only ground-floor panels block movement. Panels go intact → damaged (jagged strips) → gone (ground floor leaves debris); HP 130 ground / 90 upper. When ≥50% of a floor's panels are gone, that floor and everything above collapse (`collapseFrom`). A full collapse leaves a rubble heap mound and rubble meshes; a partial one cracks the slab below. Intact panels and slabs are instances in a few `InstancedMesh`es (hidden by zero-scale matrix); damaged visuals are created on demand. Pieces have `y0` (base height) and `blocks`. All piece queries go through the 8 m spatial grid (`piecesNear`).
 - Chase camera trails the heading; per-mode distance/height in `CAM_R`/`CAM_EL` (artillery pulls back and up). Drag to look around, eases back after 1.5s.
 - Controls: WASD drive, mouse aim + left click fire (buggy/mech), right-drag look, Shift run (mech), T tuning panel, 1/2/3 switch modes, Space fires, R resets the field, M toggles sound, drag to look, scroll to zoom.
 

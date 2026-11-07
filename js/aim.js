@@ -10,7 +10,7 @@ const impactP=new THREE.Vector3();
 // owner: 'player' or the enemy that fired; a shell never hits its own shooter
 function shotHits(sp,owner='player'){if(sp.y<gh(sp.x,sp.z)+.05||Math.abs(sp.x)>HALF-2||Math.abs(sp.z)>HALF-2)return true;
   for(const o of targets){const h=o.userData.h;if(Math.abs(o.position.x-sp.x)<h.x+.15&&Math.abs(o.position.y-sp.y)<h.y+.15&&Math.abs(o.position.z-sp.z)<h.z+.15)return true}
-  for(const pc of pieces)if(pieceHitShot(pc,sp))return true;
+  for(const pc of piecesNear(sp.x,sp.z,.3))if(pieceHitShot(pc,sp))return true;
   for(const e of enemies)if(!e.dead&&e!==owner&&Math.hypot(sp.x-e.x,sp.z-e.z)<e.r&&sp.y>e.y-.2&&sp.y<e.y+e.hh)return true;
   if(owner!=='player'&&!pl.dead&&Math.hypot(sp.x-car.x,sp.z-car.z)<(mode===1?1.6:1.3)&&sp.y>car.y-.2&&sp.y<car.y+PL_H[mode])return true;
   return false}
@@ -34,7 +34,7 @@ const TURRET={0:{yaw:2.1,lo:-.25,hi:.8,rate:6},2:{yaw:.6,lo:-.35,hi:.6,rate:3}};
 const GA={yaw:0,elev:0,k:0,fresh:true},ray=new THREE.Raycaster(),aimPt=new THREE.Vector3(),_pv=new THREE.Vector3(),_d=new THREE.Vector3();
 const pivPoses=parts.find(pt=>pt.o===piv).po;
 function cursorPoint(){if(!mouseIn)return false;ray.setFromCamera(mouse,cam);const o=ray.ray.origin,d=ray.ray.direction;
-  let best=160;const hit=ray.intersectObjects(targets.concat(enemies.filter(e=>!e.dead).map(e=>e.g),solidPieces().map(p=>p.g[p.state])),true)[0];if(hit)best=hit.distance;
+  let best=160;const hit=ray.intersectObjects(targets.concat(enemies.filter(e=>!e.dead).map(e=>e.g),solidPieces().filter(p=>p.g).map(p=>p.g[p.state]),bldMeshes,solidPieces().filter(p=>p.dmg).map(p=>p.dmg)),true)[0];if(hit)best=hit.distance;
   for(let t=1;t<best;t+=.4){const x=o.x+d.x*t,z=o.z+d.z*t;if(o.y+d.y*t<gh(x,z)){best=t-.2;break}} // march the heightfield
   aimPt.copy(o).addScaledVector(d,best);if(best>=160)aimPt.y=gh(aimPt.x,aimPt.z); // aiming at sky: use the far ground point
   return true}

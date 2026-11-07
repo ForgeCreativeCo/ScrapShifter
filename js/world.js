@@ -45,7 +45,8 @@ function wreck(x,z,ry){const g=new THREE.Group();g.position.set(x,gh(x,z),z);g.r
 function drum(x,z,lie){const d=mk(C(.3,.9,14),srnd()<.5?rusty:hazard,x,gh(x,z)+(lie?.3:.45),z);if(lie){d.rotation.z=PI/2;d.rotation.y=srnd()*3}return d}
 // Destructible structure layout comes from the map (built in structures.js). Walls: centre, rotation, length; sheds 4.2 m square.
 const LAYOUT=MAP.layout;
-function layoutNear(x,z){return LAYOUT.some(it=>{const dx=x-it.x,dz=z-it.z;if(it.k==='shed')return Math.hypot(dx,dz)<5.5;
+function layoutNear(x,z){if((MAP.buildings||[]).some(b=>{const dx=x-b.x,dz=z-b.z,c=Math.cos(b.rot),s=Math.sin(b.rot);return Math.abs(dx*c-dz*s)<b.mx*2+3&&Math.abs(dx*s+dz*c)<b.mz*2+3}))return true;
+  return LAYOUT.some(it=>{const dx=x-it.x,dz=z-it.z;if(it.k==='shed')return Math.hypot(dx,dz)<5.5;
   const c=Math.cos(it.rot),s=Math.sin(it.rot),lx=dx*c-dz*s,lz=dx*s+dz*c;return Math.abs(lx)<it.w/2+2.5&&Math.abs(lz)<3})}
 const solids=[]; // circle colliders for scenery: {x,z,r}
 const srnd=rng(MAP.seed*31+5),SC=MAP.scenery; // seeded so every player gets the same scenery

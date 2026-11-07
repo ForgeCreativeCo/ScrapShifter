@@ -78,7 +78,7 @@ function smashAngle(t){ // arm swing (rad) and forward thrust over the bash
 function smashHit(){const fx=Math.cos(car.h),fz=-Math.sin(car.h),rx=Math.sin(car.h),rz=Math.cos(car.h);
   const c=new THREE.Vector3(car.x+fx*2.3+rx*.5,0,car.z+fz*2.3+rz*.5);c.y=gh(c.x,c.z)+.3;let hits=0;
   enemies.forEach(e=>{if(!e.dead&&Math.hypot(e.x-c.x,e.z-c.z)<SMASH_R+1.2){damageEnemy(e,SMASH_DMG);e.kx+=fx*9;e.kz+=fz*9;e.stun=1.2;hits++}});
-  pieces.forEach(pc=>{if(pc.state<2&&pieceDist(pc,c.clone().setY(car.y+1.5))<SMASH_R){damagePiece(pc,BASH_STRUCT,new THREE.Vector3(car.x,car.y+1.5,car.z));hits++}});
+  piecesNear(c.x,c.z,SMASH_R+1).forEach(pc=>{if(pieceDist(pc,c.clone().setY(car.y+1.5))<SMASH_R){damagePiece(pc,BASH_STRUCT,new THREE.Vector3(car.x,car.y+1.5,car.z));hits++}});
   targets.slice().forEach(o=>{const h=o.userData.h,dx=Math.max(Math.abs(o.position.x-c.x)-h.x,0),dz=Math.max(Math.abs(o.position.z-c.z)-h.z,0);
     if(Math.hypot(dx,dz)<SMASH_R&&o.position.y<car.y+5.5){shatter(o,new THREE.Vector3(car.x,car.y+1.5,car.z),9);hits++}});
   for(let i=0;i<10;i++){const a=Math.random()*6.28,s=rnd(2,5);smoke(c.clone().add(new THREE.Vector3(Math.cos(a)*.4,0,Math.sin(a)*.4)),new THREE.Vector3(Math.cos(a)*s+fx*3,rnd(.2,1),Math.sin(a)*s+fz*3),0x8A7A60,.4,rnd(1.6,2.6),rnd(1,1.8),.5)}

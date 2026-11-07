@@ -29,34 +29,45 @@ function addPiece(kind,x,z,rot,w,d,seed){const r=rng(seed),S=STRUCT[kind],h=S.h*
   // rubble: a low heap on the mound that replaces the piece
   const nRub=kind==='wall'?7:13;for(let i=0;i<nRub;i++){const sz=.3+r()*.6;box(G[2],[mat,rusty,concrete,steel][Math.floor(r()*4)],sz*(1+r()),sz*.5,sz,(r()-.5)*w*.9,.35+r()*.25,(r()-.5)*Math.max(d,1.2),r()*.8,r()*.8)}
   if(kind==='shed')box(G[2],mat,w*.6,.1,d*.5,r()-.5,.6,r()-.5,.25,.15);
-  const p={kind,x,z,rot,w,d,gy,c,s,hp:S.hp,max:S.hp,state:0,H:[h,h*S.dmgH+.15,.5],g:G,lastRam:-9};
+  const p={kind,x,z,rot,w,d,gy,y0:gy,c,s,hp:S.hp,max:S.hp,state:0,H:[h,h*S.dmgH+.15,.5],g:G,lastRam:-9,blocks:true,debrisM:mat};
   G[1].visible=G[2].visible=false;pieces.push(p);return p}
 
 // Point -> piece-local coords (local x runs along the wall)
 const pieceLocal=(p,x,z)=>{const dx=x-p.x,dz=z-p.z;return[dx*p.c-dz*p.s,dx*p.s+dz*p.c]};
 // Push a circle (o.x,o.z, radius rad) out of a piece's footprint. Returns the world push normal, or null.
-function obbPush(o,p,rad){const[lx,lz]=pieceLocal(p,o.x,o.z),hw=p.w/2,hd=p.d/2,cx=Math.max(-hw,Math.min(hw,lx)),cz=Math.max(-hd,Math.min(hd,lz));
+// Pieces have a footprint box (w along local x, d along local z) from height y0 up to y0+H[state].
+// blocks=false pieces (upper floors, roof slabs) don't stop movement.
+function obbPush(o,p,rad){if(p.blocks===false||p.state===2)return null;const[lx,lz]=pieceLocal(p,o.x,o.z),hw=p.w/2,hd=p.d/2,cx=Math.max(-hw,Math.min(hw,lx)),cz=Math.max(-hd,Math.min(hd,lz));
   let nx=lx-cx,nz=lz-cz,d=Math.hypot(nx,nz);if(d>=rad)return null;
   if(d<1e-4){const px=hw-Math.abs(lx),pz=hd-Math.abs(lz);if(px<pz){nx=Math.sign(lx)||1;nz=0;d=-px}else{nx=0;nz=Math.sign(lz)||1;d=-pz}}else{nx/=d;nz/=d}
   const wx=nx*p.c+nz*p.s,wz=-nx*p.s+nz*p.c,k=rad-d;o.x+=wx*k;o.z+=wz*k;return{x:wx,z:wz}}
 // Distance from a 3D point to the piece's current box (for blast falloff)
-function pieceDist(p,v){const[lx,lz]=pieceLocal(p,v.x,v.z),dx=Math.max(Math.abs(lx)-p.w/2,0),dz=Math.max(Math.abs(lz)-p.d/2,0),dy=Math.max(v.y-(p.gy+p.H[p.state]),0);return Math.hypot(dx,dy,dz)}
-function pieceHitShot(p,sp){if(p.state===2)return false;const[lx,lz]=pieceLocal(p,sp.x,sp.z);return Math.abs(lx)<p.w/2+.1&&Math.abs(lz)<p.d/2+.1&&sp.y<p.gy+p.H[p.state]}
+function pieceDist(p,v){const[lx,lz]=pieceLocal(p,v.x,v.z),dx=Math.max(Math.abs(lx)-p.w/2,0),dz=Math.max(Math.abs(lz)-p.d/2,0),dy=Math.max(v.y-(p.y0+p.H[p.state]),p.y0-v.y,0);return Math.hypot(dx,dy,dz)}
+function pieceHitShot(p,sp){if(p.state===2)return false;const[lx,lz]=pieceLocal(p,sp.x,sp.z);return Math.abs(lx)<p.w/2+.1&&Math.abs(lz)<p.d/2+.1&&sp.y<p.y0+p.H[p.state]&&sp.y>p.y0-.1}
 const solidPieces=()=>pieces.filter(p=>p.state<2);
 
 function damagePiece(p,dmg,from){if(p.state===2)return;p.hp-=dmg;const ns=p.hp<=0?2:p.hp<=p.max*.5?1:0;if(ns>p.state)setPieceState(p,ns,from)}
-function setPieceState(p,s,from){p.state=s;p.g.forEach((g,i)=>g.visible=i===s);if(!from)return;
-  const top=p.gy+p.H[s-1],o=new THREE.Vector3(p.x,p.gy+1,p.z);
-  for(let i=0;i<(s===2?16:9);i++){const lx=(Math.random()-.5)*p.w,lz=(Math.random()-.5)*p.d,q=new THREE.Vector3(p.x+lx*p.c+lz*p.s,p.gy+rnd(.4,top-p.gy),p.z-lx*p.s+lz*p.c);
-    chunk(q,rnd(.18,.45),Math.random()<.6?p.g[0].children[0].material:rusty,rnd(4,8),from,Math.random()<.3)}
+// Visual swap: walls/sheds toggle prebuilt groups; other kinds (building panels) provide onState. from=null: no effects.
+function setPieceState(p,s,from){p.state=s;if(p.onState)p.onState(p,s);else p.g.forEach((g,i)=>g.visible=i===s);if(!from)return;
+  const top=p.y0+p.H[Math.max(0,s-1)],o=new THREE.Vector3(p.x,p.y0+Math.min(1,p.H[0]/2),p.z);
+  for(let i=0;i<(s===2?16:9);i++){const lx=(Math.random()-.5)*p.w,lz=(Math.random()-.5)*p.d,q=new THREE.Vector3(p.x+lx*p.c+lz*p.s,p.y0+rnd(.2,Math.max(.4,top-p.y0)),p.z-lx*p.s+lz*p.c);
+    chunk(q,rnd(.18,.45),Math.random()<.6?p.debrisM:rusty,rnd(4,8),from,Math.random()<.3)}
   for(let i=0;i<(s===2?12:6);i++){const a=Math.random()*6.28,sp=rnd(1.5,4);smoke(o.clone().add(new THREE.Vector3(Math.cos(a)*p.w*.3,rnd(-.6,.4),Math.sin(a)*p.d*.3)),new THREE.Vector3(Math.cos(a)*sp,rnd(.3,1.2),Math.sin(a)*sp),0x8A7A60,.6,rnd(2.4,3.8),rnd(2,3.5),.55)}
   trauma=Math.min(1,trauma+(s===2?.25:.12)/(1+cam.position.distanceTo(o)*.05));
   if(audio()){const d=cam.position.distanceTo(o),t=AC.currentTime+d/343,a=1/(1+d*.04);nz(t,s===2?.9:.5,1400,70,.75*a);th(t,60,24,.6,.7*a);nz(t+.05,.35,3800,900,.3*a,'bandpass')}
-  if(s===2)mound(p)}
+  if(s===2&&!p.onState)mound(p)}
 // Raise the heightfield under rubble so vehicles climb over the heap (reset by initGround)
 function mound(p){const ext=Math.hypot(p.w,p.d)/2+1;
   editGround(p.x,p.z,ext,(i,x,z)=>{const[lx,lz]=pieceLocal(p,x,z),e=Math.hypot(Math.max(Math.abs(lx)-p.w/2,0),Math.max(Math.abs(lz)-Math.max(p.d,1)/2,0));
     if(e<.9){gHt[i]=Math.max(gHt[i],p.gy+.08+.42*(1-(e/.9)**2));gCol[i*3]*=.93;gCol[i*3+1]*=.93;gCol[i*3+2]*=.92}})}
+// Spatial grid (8 m cells) so collisions, shells and blasts only check nearby pieces. Pieces never move,
+// so the grid is built once after all structures and buildings exist (buildPieceGrid, called from buildings.js).
+const PGC=8,pGrid=new Map();let pStamp=0;const pKey=(i,j)=>i*4096+j;
+function buildPieceGrid(){pGrid.clear();pieces.forEach(p=>{const br=Math.hypot(p.w,p.d)/2;
+  for(let i=Math.floor((p.x-br)/PGC);i<=Math.floor((p.x+br)/PGC);i++)for(let j=Math.floor((p.z-br)/PGC);j<=Math.floor((p.z+br)/PGC);j++){const k=pKey(i,j);if(!pGrid.has(k))pGrid.set(k,[]);pGrid.get(k).push(p)}})}
+function piecesNear(x,z,r){const out=[];pStamp++;
+  for(let i=Math.floor((x-r)/PGC);i<=Math.floor((x+r)/PGC);i++)for(let j=Math.floor((z-r)/PGC);j<=Math.floor((z+r)/PGC);j++){const l=pGrid.get(pKey(i,j));if(l)for(const p of l)if(p._q!==pStamp){p._q=pStamp;if(p.state<2)out.push(p)}}
+  return out}
 function resetStructures(){pieces.forEach(p=>{p.hp=p.max;setPieceState(p,0,null)})}
 
 // Build the layout (LAYOUT lives in world.js so scenery can avoid it). Walls are cut into ~2.5 m segments.
