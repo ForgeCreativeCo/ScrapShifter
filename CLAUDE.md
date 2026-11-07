@@ -26,7 +26,8 @@ three.js r128 from cdnjs, no build step. Open `index.html` directly in a browser
 | `js/audio.js` | Web Audio synth (`audio`, `nz`, `th`, boom/fire sounds) |
 | `js/world.js` | deformable ground (`gh`, `crater`), scenery + `solids` colliders, destructible `targets` |
 | `js/vehicle.js` | vehicle parts and per-mode poses (`parts`, `root`, `piv`, `gun`, `muz`) |
-| `js/effects.js` | particles (`smoke`, `fireball`, `ember`, `chunk`), `explode`, camera `trauma` |
+| `js/effects.js` | particles (`smoke`, `fireball`, `ember`, `chunk`), `explode`, `shatter`, camera `trauma` |
+| `js/structures.js` | destructible walls/sheds (`pieces`), rubble mounds, scrap perimeter |
 | `js/camera.js` | chase camera state, mouse input (aim, click fire, right-drag look) |
 | `js/drive.js` | `car` state, driving, collisions, terrain following, engine sound |
 | `js/mech.js` | mech gait + leg IK, `TUNE` values and the Tune panel |
@@ -49,6 +50,10 @@ three.js r128 from cdnjs, no build step. Open `index.html` directly in a browser
 - Aiming: in artillery, W/S elevates (2°–83°, high lobs reach close targets), A/D traverses the turret ±135°, Shift for fine control. `predict()` steps a virtual shell with the same gravity as real shots (shared `shotHits`) to draw the arc and an impact ring sized to the blast radius (2.3 × power). Buggy/mech aim with the mouse: `cursorPoint()` raycasts targets and marches the heightfield under the cursor, `gunAim()` solves the low ballistic arc, converts it to hull space (slopes handled) and slews the gun within `TURRET` limits (buggy ±120°, mech arm ±34°; turn the mech for more). Left click fires (hold to repeat; artillery one per click), right-drag looks around. Buggy/mech show a fainter ring only. The camera sits behind the turret and looks partway toward the impact; fog is pushed back. Muzzle speed/power in `FIRE`, reload times in `RELOAD` (artillery 2.2s); the marker greys out while reloading.
 - Combat (`// ---------- Combat` section): `explode()` calls `applyBlast()`, which damages anything within 2.3×power+1.2 m with linear falloff. Shells carry an `owner` so they never hit their shooter, and `shotHits()` checks enemies and the player. Player hull is 100 with armor per mode (`ARMOR`: buggy 1.25, artillery 0.7, mech 0.85) and 1.5× damage mid-transform. It repairs 5/s after 5 s without damage. Death wrecks the vehicle (burning, slumped, controls locked) until R, which also resets enemies, shells and kills.
 - Enemy crawlers: low tracked scrap vehicles (red hull, plow blade, red sensor lamp). Up to `ENEMY_MAX`=2, respawning 8 s apart at 46 m from center. They patrol waypoints and engage inside 48 m: close in, back off under 14 m, circle-strafe in the 14–26 m band. The turret leads the player imperfectly (`e.lead`), solves the low arc and fires when laid (2.4–3.4 s reload). The lamp brightens just before a shot. Each enemy shell gets a pulsing red warning ring at its predicted impact (`simShell`). 60 HP: buggy shots take 2, artillery 1. HUD shows hull, kills and floating enemy health bars.
+- Scrap-bike rushers (`makeBike`/`bikeTick` in combat.js): one at a time, 14–20 s apart, first after ~20 s. They weave in at 11 m/s and detonate within 2.6 m (power 1.6 charge), with the beacon and beep speeding up as they close. 30 HP, so one buggy shot kills one, and shooting it sets the charge off (chain-kills nearby crawlers). Enemies share `killEnemy(e,credit)` and per-type hit sizes (`e.r`, `e.hh`, `e.maxHp`, `e.barY`).
+- Mech close-range role (mech.js/combat.js): F = shield bash (`SMASH_*`): wind-up, lunge, swing of the `ARM` parts about the shoulder. One-shots crawlers (knockback + stun), smashes targets and walls, adds 12 heat. The shield blocks 75% of blasts from the front arc (`shieldBlocks`). A running mech rams: shatters targets, smashes walls (`RAM_STRUCT`) and shoves/damages crawlers (`RAM_DMG`).
+- Mech heat (`HEAT`, mech.js): running builds heat, overheating at 100 vents steam and locks run + bash until it drops to 35. Rates are in the Tune panel.
+- Structures (js/structures.js, layout in `LAYOUT` in world.js): wall segments and sheds with swap states intact → damaged (≤50% HP) → rubble. Deterministic: seeded shapes, HP thresholds, rubble raises a terrain `mound`. They block movement (`obbPush`), shells (`pieceHitShot`) and crawler fire, and take blast/bash/ram damage. An indestructible instanced scrap perimeter at ±58.9 hides the map edge.
 - Chase camera trails the heading; per-mode distance/height in `CAM_R`/`CAM_EL` (artillery pulls back and up). Drag to look around, eases back after 1.5s.
 - Controls: WASD drive, mouse aim + left click fire (buggy/mech), right-drag look, Shift run (mech), T tuning panel, 1/2/3 switch modes, Space fires, R resets the field, M toggles sound, drag to look, scroll to zoom.
 
@@ -64,6 +69,6 @@ three.js r128 from cdnjs, no build step. Open `index.html` directly in a browser
 
 1. ~~Drivable buggy with keyboard controls and a chase camera~~ (done).
 2. ~~Aiming: let artillery choose angle and direction, show a landing marker~~ (done, plus mouse aim for buggy/mech).
-3. Give the mech a unique role (melee smash, climbing over rubble, throwing debris).
+3. ~~Give the mech a unique role~~ (done: shield bash, frontal shield, charge ram, heat).
 4. ~~Simple enemy target that moves and shoots back~~ (done: crawlers).
 5. ~~Split the single file into modules~~ (done: classic scripts in `js/`; move to ES modules + a bundler such as Vite when multiplayer needs real tooling).

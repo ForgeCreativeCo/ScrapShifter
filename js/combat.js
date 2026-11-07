@@ -6,7 +6,7 @@
 const PL_H=[2.2,2.6,5.2],ARMOR=[1.25,.7,.85],TRANSFORM_ARMOR=1.5,PL_DMG=45,EN_DMG=60,EN_HP=60,ENEMY_MAX=2;
 const EN_SHELL={spd:22,pw:.85},EN_RANGE=48,EN_PREF=[14,26]; // shell, engage range, preferred band
 const pl={hp:100,dead:false,lastHit:-99,slump:0};let kills=0;
-const enemies=[];let spawnT=4; // first crawler rolls in after a few seconds, the next 8s later
+const enemies=[];let spawnT=4,bikeT=20; // first crawler rolls in after a few seconds, the next 8s later
 const hpFill=document.getElementById('hpFill'),hpNum=document.getElementById('hpNum'),killsEl=document.getElementById('kills'),hurtEl=document.getElementById('hurt'),toastEl=document.getElementById('toast'),ebars=document.getElementById('ebars');
 let toastT=0;function toast(m,s=2.5){toastEl.textContent=m;toastEl.classList.add('show');toastT=s}
 let hurtA=0;
@@ -27,8 +27,10 @@ function damagePlayer(d,from){if(pl.dead)return;d*=run?TRANSFORM_ARMOR:ARMOR[mod
     let tt=0;addFx(null,14,(f,k,dt)=>{tt+=dt;if(tt>.12&&pl.dead){tt=0;const q=new THREE.Vector3(car.x+rnd(-.6,.6),car.y+1,car.z+rnd(-.6,.6));fireball(q,new THREE.Vector3(0,rnd(1,2),0),.35,.9*(1-k),rnd(.4,.7));smoke(q.clone().setY(q.y+.8),new THREE.Vector3(rnd(-.2,.2),rnd(1.5,2.5),rnd(-.2,.2)),0x221F1B,.7,3.2,rnd(4,6),.6)}});
     toast('Wrecked. Press R to rebuild.',9999)}}
 function damageEnemy(e,d){if(e.dead)return;e.hp-=d;e.flash=1;sparks(new THREE.Vector3(e.x,e.y+1,e.z),8);hitClank(e.g.position,.8);
-  if(e.hp<=0){e.hp=0;e.dead=true;e.deadT=0;kills++;killsEl.textContent=kills;e.bar.style.display='none';
-    e.g.traverse(o=>{if(o.isMesh)o.material=charM});explode(new THREE.Vector3(e.x,e.y+.8,e.z),1.5);toast('Crawler destroyed')}}
+  if(e.hp<=0)killEnemy(e,true)}
+function killEnemy(e,credit){e.hp=0;e.dead=true;e.deadT=0;e.bar.style.display='none';if(credit){kills++;killsEl.textContent=kills}
+  e.g.traverse(o=>{if(o.isMesh)o.material=charM});const bike=e.type==='bike';
+  explode(new THREE.Vector3(e.x,e.y+(bike?.9:.8),e.z),bike?BIKE.pw:1.5);if(credit)toast(bike?'Rusher down':'Crawler destroyed')}
 function applyBlast(p,pw){const R=2.3*pw+1.2;
   if(!pl.dead){const d=Math.hypot(p.x-car.x,p.y-(car.y+1),p.z-car.z);if(d<R)damagePlayer(PL_DMG*pw*(1-d/R),p)}
   enemies.slice().forEach(e=>{if(e.dead)return;const d=Math.hypot(p.x-e.x,p.y-(e.y+.8),p.z-e.z);if(d<R)damageEnemy(e,EN_DMG*pw*(1-d/R))});
@@ -52,9 +54,10 @@ function makeEnemy(x,z){const g=new THREE.Group();g.rotation.order='YZX';sc.add(
   const m=new THREE.Object3D();m.position.x=1.7;bp.add(m);
   const bar=document.createElement('div');bar.className='ebar';bar.innerHTML='<i></i>';ebars.appendChild(bar);
   const e={g,tur,bp,muz:m,lamp,lampM,bar,x,z,y:gh(x,z),h:Math.random()*6.28,v:0,pitch:0,roll:0,hp:EN_HP,dead:false,deadT:0,flash:0,
-    reload:rnd(2,4),tYaw:0,tElev:.1,wp:null,strafe:Math.random()<.5?1:-1,strafeT:rnd(3,7),lead:rnd(.55,.95),kx:0,kz:0,stun:0,rammed:-9};
+    reload:rnd(2,4),tYaw:0,tElev:.1,wp:null,strafe:Math.random()<.5?1:-1,strafeT:rnd(3,7),lead:rnd(.55,.95),kx:0,kz:0,stun:0,rammed:-9,type:'crawler',r:1.5,hh:1.9,maxHp:EN_HP,barY:2.6};
   enemies.push(e);return e}
-function spawnEnemy(){let x=0,z=0;for(let i=0;i<20;i++){const a=Math.random()*6.28;x=Math.cos(a)*46;z=Math.sin(a)*46;if(Math.hypot(x-car.x,z-car.z)>32)break}makeEnemy(x,z)}
+function spawnPoint(){let x=0,z=0;for(let i=0;i<20;i++){const a=Math.random()*6.28;x=Math.cos(a)*46;z=Math.sin(a)*46;if(Math.hypot(x-car.x,z-car.z)>32&&!layoutNear(x,z))break}return[x,z]}
+function spawnEnemy(){makeEnemy(...spawnPoint())}
 function removeEnemy(e){sc.remove(e.g);e.bar.remove();enemies.splice(enemies.indexOf(e),1)}
 function enemyFire(e){const p=new THREE.Vector3();e.muz.getWorldPosition(p);e.bp.getWorldQuaternion(_q);
   const v=new THREE.Vector3(1,0,0).applyQuaternion(_q).multiplyScalar(EN_SHELL.spd*rnd(.97,1.03));v.x+=rnd(-.35,.35);v.z+=rnd(-.35,.35);
@@ -66,6 +69,7 @@ function enemyFire(e){const p=new THREE.Vector3();e.muz.getWorldPosition(p);e.bp
 function pushOut(o,cx,cz,m){const dx=o.x-cx,dz=o.z-cz,d=Math.hypot(dx,dz);if(d<m&&d>1e-4){o.x+=dx/d*(m-d);o.z+=dz/d*(m-d);return true}return false}
 function enemyTick(e,dt){
   if(e.dead){e.deadT+=dt;if(e.deadT>14)e.g.position.y-=dt*.3;if(e.deadT>20)removeEnemy(e);return}
+  if(e.type==='bike')return bikeTick(e,dt);
   const dx=car.x-e.x,dz=car.z-e.z,d=Math.hypot(dx,dz),engage=!pl.dead&&d<EN_RANGE,toP=Math.atan2(-dz,dx);
   // knockback from bashes/rams, and a stun that stops it driving and firing
   e.x+=e.kx*dt;e.z+=e.kz*dt;const kd=Math.exp(-dt*4);e.kx*=kd;e.kz*=kd;e.stun=Math.max(0,e.stun-dt);
@@ -105,17 +109,53 @@ function enemyTick(e,dt){
   // lamp brightens as the next shot gets close: a tell before it fires
   e.flash=Math.max(0,e.flash-dt*4);e.lampM.emissiveIntensity=engage?.6+3*Math.max(0,1-e.reload/1):(.3+.2*Math.sin(clock*3));
   e.lampM.emissive.setHex(e.flash>0?0xffffff:0xff2a10)}
+// --- Scrap-bike rusher: fast, fragile, carries a drum charge. Weaves in, detonates within BIKE.fuse of the player.
+// Its beacon blinks (and beeps) faster as it closes. Shooting it sets off the charge too, which can take nearby crawlers with it.
+const BIKE={hp:30,spd:11,turn:2.6,fuse:2.6,pw:1.6};
+function makeBike(x,z){const g=new THREE.Group();g.rotation.order='YZX';sc.add(g);
+  mk(B(1.5,.22,.3),hostile,0,.62,0,g);mk(B(.55,.35,.42),rusty,.15,.85,0,g);mk(C(.06,.75,6),steel,.62,.95,0,g).rotation.z=-.5;mk(B(.08,.08,.75),steel,.8,1.27,0,g);
+  const wheels=[.75,-.65].map(wx=>{const w=mk(C(.36,.16,12),tireM,wx,.36,0,g);w.rotation.x=PI/2;return w});
+  mk(C(.27,.62,12),hazard,-.45,1.0,0,g).rotation.x=PI/2;mk(B(.04,.6,.66),steel,-.45,1.0,0,g);
+  const lampM=new THREE.MeshStandardMaterial({color:0x2a0805,emissive:0xff2a10,emissiveIntensity:.3});mk(new THREE.SphereGeometry(.1,10,8),lampM,-.45,1.37,0,g);
+  const bar=document.createElement('div');bar.className='ebar';bar.innerHTML='<i></i>';ebars.appendChild(bar);
+  const e={type:'bike',g,wheels,lampM,bar,x,z,y:gh(x,z),h:Math.random()*6.28,v:0,pitch:0,roll:0,hp:BIKE.hp,maxHp:BIKE.hp,dead:false,deadT:0,flash:0,
+    kx:0,kz:0,stun:0,t:0,seed:rnd(0,6.28),blinkT:0,wp:null,rammed:-9,r:1.0,hh:1.5,barY:1.9};
+  enemies.push(e);return e}
+function bikeTick(e,dt){const dx=car.x-e.x,dz=car.z-e.z,d=Math.hypot(dx,dz);e.t+=dt;
+  e.x+=e.kx*dt;e.z+=e.kz*dt;const kd=Math.exp(-dt*4);e.kx*=kd;e.kz*=kd;e.stun=Math.max(0,e.stun-dt);
+  let want,spd;
+  if(!pl.dead){want=Math.atan2(-dz,dx)+(d>10?Math.sin(e.t*2.2+e.seed)*.6:0);spd=BIKE.spd}
+  else{if(!e.wp||Math.hypot(e.wp.x-e.x,e.wp.z-e.z)<3)e.wp={x:rnd(-45,45),z:rnd(-45,45)};want=Math.atan2(-(e.wp.z-e.z),e.wp.x-e.x);spd=5}
+  if(e.stun>0)spd=0;
+  let dh=want-e.h;dh=Math.atan2(Math.sin(dh),Math.cos(dh));e.h+=Math.max(-BIKE.turn*dt,Math.min(BIKE.turn*dt,dh));
+  e.v+=(spd*Math.max(.25,Math.cos(dh))-e.v)*Math.min(1,dt*1.5);
+  const fx=Math.cos(e.h),fz=-Math.sin(e.h);e.x+=fx*e.v*dt;e.z+=fz*e.v*dt;
+  for(const s of solids)pushOut(e,s.x,s.z,.9+s.r);
+  for(const o of targets){const h=o.userData.h;pushOut(e,Math.max(o.position.x-h.x,Math.min(e.x,o.position.x+h.x)),Math.max(o.position.z-h.z,Math.min(e.z,o.position.z+h.z)),.9)}
+  for(const pc of pieces)if(pc.state<2)obbPush(e,pc,.9);
+  for(const o of enemies)if(o!==e&&!o.dead)pushOut(e,o.x,o.z,1.8);
+  const lim=GS/2-4;e.x=Math.max(-lim,Math.min(lim,e.x));e.z=Math.max(-lim,Math.min(lim,e.z));
+  const hf=gh(e.x+fx*.7,e.z+fz*.7),hb=gh(e.x-fx*.7,e.z-fz*.7),k=Math.min(1,dt*10);
+  e.pitch+=(Math.atan2(hf-hb,1.4)-e.pitch)*k;e.roll+=(Math.max(-.5,Math.min(.5,-dh*1.2))*Math.min(1,e.v/6)-e.roll)*Math.min(1,dt*5);e.y+=((hf+hb)/2-e.y)*k; // leans into turns
+  e.g.position.set(e.x,e.y,e.z);e.g.rotation.set(e.roll,e.h,e.pitch);e.wheels.forEach(w=>w.rotation.y-=e.v*dt/.36);
+  if(e.v>6&&Math.random()<dt*14){const q=new THREE.Vector3(e.x-fx*.8,e.y+.15,e.z-fz*.8);smoke(q,new THREE.Vector3(-fx*2+rnd(-.4,.4),rnd(.3,.8),-fz*2+rnd(-.4,.4)),0x8A7A60,.25,rnd(1,1.6),rnd(.7,1.1),.35)}
+  // beacon + beep speed up as it closes in
+  const period=Math.max(.1,Math.min(.9,d/28));e.blinkT+=dt;if(e.blinkT>period){e.blinkT=0;e.flash=.5;
+    if(!pl.dead&&d<35&&audio()){const t=AC.currentTime,a=1/(1+d*.06);th(t,1500,1450,.05,.18*a)}}
+  e.flash=Math.max(0,e.flash-dt*5);e.lampM.emissiveIntensity=e.flash>0?3.5:.3;
+  if(!pl.dead&&d<BIKE.fuse&&e.stun<=0)killEnemy(e,false)} // detonate
 const _sp=new THREE.Vector3();
 function combatTick(dt){
   enemies.slice().forEach(e=>enemyTick(e,dt));
-  if(enemies.filter(e=>!e.dead).length<ENEMY_MAX){spawnT-=dt;if(spawnT<=0){spawnEnemy();spawnT=8}}
+  if(enemies.filter(e=>!e.dead&&e.type==='crawler').length<ENEMY_MAX){spawnT-=dt;if(spawnT<=0){spawnEnemy();spawnT=8}}
+  if(!enemies.some(e=>!e.dead&&e.type==='bike')){bikeT-=dt;if(bikeT<=0){makeBike(...spawnPoint());bikeT=rnd(14,20)}}
   if(!pl.dead&&clock-pl.lastHit>5)pl.hp=Math.min(100,pl.hp+5*dt); // slow repair out of combat
   const hp=Math.round(pl.hp);hpFill.style.width=pl.hp+'%';hpFill.style.background=pl.hp>55?'#8fae5a':pl.hp>25?'#d9a43a':'#d8553a';if(hpNum.textContent!=hp)hpNum.textContent=hp;
   hurtA=Math.max(0,hurtA-dt*1.5);hurtEl.style.opacity=Math.max(hurtA,pl.dead?.5:pl.hp<25?.25+.1*Math.sin(clock*5):0);
   if(toastT>0){toastT-=dt;if(toastT<=0)toastEl.classList.remove('show')}
   const r=cv.getBoundingClientRect();
-  enemies.forEach(e=>{if(e.dead)return;_sp.set(e.x,e.y+2.6,e.z);const dist=cam.position.distanceTo(_sp);_sp.project(cam);
-    const show=_sp.z<1&&dist<60&&(e.hp<EN_HP||dist<35);e.bar.style.display=show?'block':'none';
-    if(show){e.bar.style.left=(r.left+(_sp.x+1)/2*r.width)+'px';e.bar.style.top=(r.top+(1-_sp.y)/2*r.height)+'px';e.bar.firstChild.style.width=(e.hp/EN_HP*100)+'%'}})}
+  enemies.forEach(e=>{if(e.dead)return;_sp.set(e.x,e.y+e.barY,e.z);const dist=cam.position.distanceTo(_sp);_sp.project(cam);
+    const show=_sp.z<1&&dist<60&&(e.hp<e.maxHp||dist<35);e.bar.style.display=show?'block':'none';
+    if(show){e.bar.style.left=(r.left+(_sp.x+1)/2*r.width)+'px';e.bar.style.top=(r.top+(1-_sp.y)/2*r.height)+'px';e.bar.firstChild.style.width=(e.hp/e.maxHp*100)+'%'}})}
 function resetCombat(){enemies.slice().forEach(removeEnemy);shots.forEach(s=>{sc.remove(s.m);if(s.warn)sc.remove(s.warn)});shots.length=0;
-  Object.assign(pl,{hp:100,dead:false,lastHit:-99});Object.assign(car,{x:0,z:0,h:0,v:0});kills=0;killsEl.textContent=0;toastT=.01;spawnT=3}
+  Object.assign(pl,{hp:100,dead:false,lastHit:-99});Object.assign(car,{x:0,z:0,h:0,v:0});kills=0;killsEl.textContent=0;toastT=.01;spawnT=3;bikeT=20}
