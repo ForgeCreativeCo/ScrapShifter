@@ -51,11 +51,18 @@ const TSPEC=[['Speed'],['walk','Walk speed',1,6,.1],['run','Run speed (Shift)',3
   ['Buildings'],['bldDmg','Damage to buildings ×',.25,4,.05],['collapse','Collapse when this share of a floor is gone',.15,.8,.05]];
 const tp=document.getElementById('tune'),tb=document.getElementById('tuneBtn');
 const saveTune=()=>{try{localStorage.setItem('scrapTune',JSON.stringify(TUNE))}catch(e){}};
-function buildTune(){tp.innerHTML='';TSPEC.forEach(([k,name,mn,mx,stp])=>{if(!name){const h=document.createElement('h4');h.textContent=k;tp.appendChild(h);return}
-  const l=document.createElement('label'),b=document.createElement('b'),i=document.createElement('input');l.append(name,b,i);
-  Object.assign(i,{type:'range',min:mn,max:mx,step:stp,value:TUNE[k]});const show=()=>b.textContent=(+TUNE[k]).toFixed(stp<.01?3:2);show();
-  i.oninput=()=>{TUNE[k]=+i.value;show();saveTune()};i.onchange=()=>i.blur(); // blur so WASD goes back to driving
-  tp.appendChild(l)});
+// One tab per section (Speed, Stride, Weight, Heat, Buildings) so every group is a click away instead of a long scroll
+let tuneTab=(()=>{try{return localStorage.getItem('scrapTuneTab')}catch(e){return null}})();
+function buildTune(){tp.innerHTML='';const tabs=document.createElement('div');tabs.className='tabs';tp.appendChild(tabs);const secs={};let cur=null;
+  TSPEC.forEach(([k,name,mn,mx,stp])=>{if(!name){cur=document.createElement('div');secs[k]=cur;tp.appendChild(cur);
+      const t=document.createElement('button');t.textContent=k;t.onclick=()=>showTab(k);tabs.appendChild(t);return}
+    const l=document.createElement('label'),b=document.createElement('b'),i=document.createElement('input');l.append(name,b,i);
+    Object.assign(i,{type:'range',min:mn,max:mx,step:stp,value:TUNE[k]});const show=()=>b.textContent=(+TUNE[k]).toFixed(stp<.01?3:2);show();
+    i.oninput=()=>{TUNE[k]=+i.value;show();saveTune()};i.onchange=()=>i.blur(); // blur so WASD goes back to driving
+    cur.appendChild(l)});
+  function showTab(k){if(!secs[k])k=Object.keys(secs)[0];tuneTab=k;try{localStorage.setItem('scrapTuneTab',k)}catch(e){}
+    Object.entries(secs).forEach(([n,el])=>el.style.display=n===k?'block':'none');[...tabs.children].forEach(t=>t.classList.toggle('on',t.textContent===k))}
+  showTab(tuneTab);
   const row=document.createElement('div');row.className='row';const cp=document.createElement('button'),rs=document.createElement('button');cp.textContent='Copy values';rs.textContent='Defaults';row.append(cp,rs);tp.appendChild(row);
   // Clipboard is often blocked (file:// or data: pages), so always show the values in a box too
   const out=document.createElement('textarea');out.readOnly=true;out.rows=4;out.style.cssText='display:none;width:100%;margin-top:8px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;font:11px ui-monospace,monospace;padding:6px;resize:vertical';tp.appendChild(out);
@@ -65,7 +72,9 @@ function buildTune(){tp.innerHTML='';TSPEC.forEach(([k,name,mn,mx,stp])=>{if(!na
     cp.textContent=ok?'Copied':'Select and copy below';setTimeout(()=>cp.textContent='Copy values',2500)};
   rs.onclick=()=>{Object.assign(TUNE,TUNE_DEF);saveTune();buildTune()}}
 buildTune();
-const toggleTune=()=>{tp.classList.toggle('open');tb.classList.toggle('on',tp.classList.contains('open'))};tb.onclick=toggleTune;
+// keep the panel just under the toolbar (which wraps to two rows on narrow windows)
+const placeTune=()=>{const b=document.getElementById('bar').getBoundingClientRect().bottom;tp.style.top=(b+8)+'px';tp.style.maxHeight=(innerHeight-b-24)+'px'};
+const toggleTune=()=>{placeTune();tp.classList.toggle('open');tb.classList.toggle('on',tp.classList.contains('open'))};tb.onclick=toggleTune;window.addEventListener('resize',placeTune);
 
 // ---------- Mech shield bash (F) ----------
 // Wind up, lunge, slam the shield arm forward. The arm parts rotate about the shoulder in the hull's x/y plane.
