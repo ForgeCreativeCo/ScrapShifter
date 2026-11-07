@@ -3,7 +3,7 @@
 
 // ---------- Mode switching and main loop ----------
 let mode=0,prev=0,T=9,run=false,lift=0,liftF=0,rec=0,mf=0,lookY=1.2;const LIFT=[0,.4,0],LOOK=[1.2,1.4,2.8],shots=[];let last=performance.now(),clock=0;
-const TXT=['Buggy mode. WASD to drive, mouse aims, click to fire.','Artillery mode. Planted, long range.','Mech mode. WASD to walk, Shift to run, mouse aims the arm cannon, click to fire.'];
+const TXT=['Buggy mode. WASD to drive, mouse aims, click to fire.','Artillery mode. Planted, long range.','Mech mode. WASD walk, Shift run (rams through stuff), F shield bash, click to fire. Shield blocks hits from the front.'];
 const modeBtns=document.querySelectorAll('button[data-m]');
 function setMode(m){if(pl.dead||(m===mode&&!run))return;prev=mode;mode=m;modeBtns.forEach(b=>b.classList.toggle('on',+b.dataset.m===m));parts.forEach(pt=>{const o=pt.o;pt.f={p:o.position.toArray(),r:[o.rotation.x,o.rotation.y,o.rotation.z],s:o.scale.toArray()}});liftF=lift;T=0;run=true;st.textContent='Transforming…';if(audio()){const t=AC.currentTime;for(let i=0;i<6;i++){nz(t+i*.12,.12,3000,800,.25,'bandpass');th(t+i*.12,rnd(300,500),rnd(80,150),.1,.15)}}}
 const mflash=S(puffT,0xFFD27A,true,0,1);sc.add(mflash);
@@ -15,7 +15,7 @@ const kick=rec*(mode===1?0:.15),bob=(stepBob-G.C)*ikK,sway=mode===2?TUNE.sway*ga
 pl.slump+=((pl.dead?1:0)-pl.slump)*Math.min(1,dt*3); // wrecked: sag and list to one side
 root.position.set(car.x-hx*kick,car.y+lift+bob-pl.slump*.35,car.z-hz*kick);
 root.rotation.set(car.roll+sway+pl.slump*.22,car.h,car.pitch+rec*(mode===0?.08:mode===1?.04:.02)-pl.slump*.08);
-poseLegs();reloadT=Math.max(0,reloadT-dt);aimTick(dt);if(firing&&mode!==1)fire(); // hold to keep firing (artillery: one per click)
+poseLegs();smashTick(dt);poseArm();reloadT=Math.max(0,reloadT-dt);aimTick(dt);if(firing&&mode!==1)fire(); // hold to keep firing (artillery: one per click)
 sun.position.set(car.x+10,12,car.z+8);sun.target.position.set(car.x,0,car.z);
 muz.position.x=1.6+1.6*extP.scale.x;
 mf=Math.max(0,mf-dt*10);muz.getWorldPosition(mflash.position);mflash.material.opacity=mf;mflash.scale.setScalar((mode===1?2.6:1.5)*(.6+(1-mf)*.8));muzL.intensity=mf*7;muzL.position.copy(mflash.position);
@@ -65,4 +65,4 @@ window.addEventListener('keydown',e=>{
   if(e.repeat&&e.code!=='Space')return;if(audio())engine();
   if(e.key==='t'||e.key==='T'){toggleTune();return}
   if(e.key==='1')setMode(0);else if(e.key==='2')setMode(1);else if(e.key==='3')setMode(2);
-  else if(e.code==='Space'){e.preventDefault();fire()}else if(e.key==='r'||e.key==='R')resetField();else if(e.key==='m'||e.key==='M')toggleSound()});
+  else if(e.code==='Space'){e.preventDefault();fire()}else if(e.key==='r'||e.key==='R')resetField();else if(e.key==='m'||e.key==='M')toggleSound();else if(e.key==='f'||e.key==='F')smash()});

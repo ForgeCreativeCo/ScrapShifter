@@ -64,3 +64,31 @@ function buildTune(){tp.innerHTML='';TSPEC.forEach(([k,name,mn,mx,stp])=>{if(!na
   rs.onclick=()=>{Object.assign(TUNE,TUNE_DEF);saveTune();buildTune()}}
 buildTune();
 const toggleTune=()=>{tp.classList.toggle('open');tb.classList.toggle('on',tp.classList.contains('open'))};tb.onclick=toggleTune;
+
+// ---------- Mech shield bash (F) ----------
+// Wind up, lunge, slam the shield arm forward. The arm parts rotate about the shoulder in the hull's x/y plane.
+// The hit lands at t=.5: one-shots a crawler (knockback + stun) and smashes target stacks in front.
+const SMASH={t:-1,cd:0,hit:false},SMASH_TIME=.6,SMASH_CD=1.1,SMASH_DMG=75,SMASH_R=2.2,SHOULDER=[0,4.1];
+function smash(){if(mode!==2||run||pl.dead||SMASH.cd>0)return;SMASH.t=0;SMASH.cd=SMASH_CD;SMASH.hit=false;
+  if(audio()){const t=AC.currentTime;nz(t,.35,500,2600,.2,'bandpass');th(t,180,320,.3,.12)}} // servo whine on the wind-up
+function smashAngle(t){ // arm swing (rad) and forward thrust over the bash
+  if(t<0)return[0,0];if(t<.4)return[-.9*ss(t/.4),0];if(t<.55)return[L(-.9,1.35,ss((t-.4)/.15)),ss((t-.4)/.15)*.35];
+  if(t<.7)return[1.35,.35];const k=ss((t-.7)/.3);return[L(1.35,0,k),L(.35,0,k)]}
+function smashHit(){const fx=Math.cos(car.h),fz=-Math.sin(car.h),rx=Math.sin(car.h),rz=Math.cos(car.h);
+  const c=new THREE.Vector3(car.x+fx*2.3+rx*.5,0,car.z+fz*2.3+rz*.5);c.y=gh(c.x,c.z)+.3;let hits=0;
+  enemies.forEach(e=>{if(!e.dead&&Math.hypot(e.x-c.x,e.z-c.z)<SMASH_R+1.2){damageEnemy(e,SMASH_DMG);e.kx+=fx*9;e.kz+=fz*9;e.stun=1.2;hits++}});
+  targets.slice().forEach(o=>{const h=o.userData.h,dx=Math.max(Math.abs(o.position.x-c.x)-h.x,0),dz=Math.max(Math.abs(o.position.z-c.z)-h.z,0);
+    if(Math.hypot(dx,dz)<SMASH_R&&o.position.y<car.y+5.5){shatter(o,new THREE.Vector3(car.x,car.y+1.5,car.z),9);hits++}});
+  for(let i=0;i<10;i++){const a=Math.random()*6.28,s=rnd(2,5);smoke(c.clone().add(new THREE.Vector3(Math.cos(a)*.4,0,Math.sin(a)*.4)),new THREE.Vector3(Math.cos(a)*s+fx*3,rnd(.2,1),Math.sin(a)*s+fz*3),0x8A7A60,.4,rnd(1.6,2.6),rnd(1,1.8),.5)}
+  if(hits){sparks(c.clone().setY(c.y+1.5),16);trauma=Math.min(1,trauma+.55);slowT=.07;
+    if(audio()){const t=AC.currentTime;th(t,95,28,.45,.95);nz(t,.5,1800,90,.75);nz(t,.25,4200,1200,.45,'bandpass')}}
+  else{trauma=Math.min(1,trauma+.15);if(audio()){const t=AC.currentTime;nz(t,.3,2400,400,.3,'bandpass')}}}
+function smashTick(dt){SMASH.cd=Math.max(0,SMASH.cd-dt);if(SMASH.t<0)return;
+  if(mode!==2||run){SMASH.t=-1;return}
+  const prev=SMASH.t;SMASH.t+=dt/SMASH_TIME;
+  if(prev<.4&&SMASH.t>=.4)car.v=Math.max(car.v,0)+4; // lunge into the swing
+  if(!SMASH.hit&&SMASH.t>=.5){SMASH.hit=true;smashHit()}
+  if(SMASH.t>=1)SMASH.t=-1}
+function poseArm(){if(mode!==2||run)return;const[th,push]=smashAngle(SMASH.t),c=Math.cos(th),s=Math.sin(th);
+  [ARM.upper,ARM.fore,ARM.shield].forEach(pt=>{const p=pt.po[2].p,x=p[0]-SHOULDER[0],y=p[1]-SHOULDER[1];
+    pt.o.position.x=SHOULDER[0]+x*c-y*s+push;pt.o.position.y=SHOULDER[1]+x*s+y*c;pt.o.rotation.z=pt.po[2].r[2]+th})}

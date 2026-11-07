@@ -12,7 +12,10 @@ function clank(pw){if(!audio())return;const t=AC.currentTime;nz(t,.3,2600,300,.5
 function collide(fx,fz){let n=null;
   const push=(dx,dz,d,m)=>{if(d<m&&d>1e-4){car.x+=dx/d*(m-d);car.z+=dz/d*(m-d);n={x:dx/d,z:dz/d}}};
   for(const s of solids){const dx=car.x-s.x,dz=car.z-s.z;push(dx,dz,Math.hypot(dx,dz),CR+s.r)}
-  for(const o of targets){const h=o.userData.h,cx=Math.max(o.position.x-h.x,Math.min(car.x,o.position.x+h.x)),cz=Math.max(o.position.z-h.z,Math.min(car.z,o.position.z+h.z)),dx=car.x-cx,dz=car.z-cz;push(dx,dz,Math.hypot(dx,dz),CR)}
+  const ramming=mode===2&&!run&&runK>.5; // a running mech ploughs straight through target stacks
+  for(const o of targets.slice()){const h=o.userData.h,cx=Math.max(o.position.x-h.x,Math.min(car.x,o.position.x+h.x)),cz=Math.max(o.position.z-h.z,Math.min(car.z,o.position.z+h.z)),dx=car.x-cx,dz=car.z-cz,d=Math.hypot(dx,dz);
+    if(ramming&&d<CR+.2&&-(dx*fx+dz*fz)/Math.max(d,.01)>.3){shatter(o,new THREE.Vector3(car.x,car.y+1,car.z),5+Math.abs(car.v));car.v*=.93;trauma=Math.min(1,trauma+.12);continue}
+    push(dx,dz,d,CR)}
   if(!n)return;
   const into=-(fx*n.x+fz*n.z)*Math.sign(car.v); // how head-on the hit is
   if(into>.3&&Math.abs(car.v)>6){trauma=Math.min(1,trauma+.04*Math.abs(car.v));clank(Math.min(1,Math.abs(car.v)/15));car.v*=-.2}

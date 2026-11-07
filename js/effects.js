@@ -32,4 +32,7 @@ for(let i=0;i<Math.round(12*pw);i++){const a=Math.random()*6.28,sp=rnd(4,8)*pw;s
 for(let i=0;i<Math.round(22*pw);i++){const v=new THREE.Vector3(rnd(-1,1),rnd(.3,1.4),rnd(-1,1)).normalize().multiplyScalar(rnd(6,15)*pw);ember(p.clone(),v,rnd(.6,1.6))}
 for(let i=0;i<Math.round(14*pw);i++)chunk(p.clone().add(new THREE.Vector3(0,.2,0)),rnd(.08,.24),Math.random()<.7?rusty:steel,rnd(5,10)*pw,null,Math.random()<.35);
 if(pw>1.1){let tt=0;const fp=p.clone();fp.y=gh(fp.x,fp.z)+.1;addFx(null,5,(f,k,dt)=>{tt+=dt;if(tt>.1){tt=0;fireball(fp.clone().add(new THREE.Vector3(rnd(-.5,.5),0,rnd(-.5,.5))),new THREE.Vector3(0,rnd(1,2.5),0),.4,1.1*(1-k*.6),rnd(.4,.7));smoke(fp.clone().add(new THREE.Vector3(0,1,0)),new THREE.Vector3(rnd(-.2,.2),rnd(1.5,2.5),rnd(-.2,.2)),0x24211D,.8,3.5,rnd(4,6),.6)}})}
-const r=2.3*pw;targets.slice().forEach(o=>{const d=o.position.distanceTo(p);if(d<r+.5){const hv=o.userData.h,m=o.userData.m;for(let i=0;i<10;i++){const q=o.position.clone().add(new THREE.Vector3(rnd(-1,1)*hv.x,rnd(-1,1)*hv.y,rnd(-1,1)*hv.z));chunk(q,hv.y*rnd(.35,.7),m,6*pw*(1-Math.min(d,r)/r)+3,p,Math.random()<.3)}sc.remove(o);targets.splice(targets.indexOf(o),1)}})}
+const r=2.3*pw;targets.slice().forEach(o=>{const d=o.position.distanceTo(p);if(d<r+.5)shatter(o,p,6*pw*(1-Math.min(d,r)/r)+3)})}
+// Break a destructible target into flying chunks, thrown away from `from` at speed spd
+function shatter(o,from,spd){const hv=o.userData.h,m=o.userData.m;for(let i=0;i<10;i++){const q=o.position.clone().add(new THREE.Vector3(rnd(-1,1)*hv.x,rnd(-1,1)*hv.y,rnd(-1,1)*hv.z));chunk(q,hv.y*rnd(.35,.7),m,spd,from,Math.random()<.3)}
+  sc.remove(o);const i=targets.indexOf(o);if(i>=0)targets.splice(i,1)}

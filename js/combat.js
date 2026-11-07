@@ -12,8 +12,16 @@ let toastT=0;function toast(m,s=2.5){toastEl.textContent=m;toastEl.classList.add
 let hurtA=0;
 function hitClank(p,pw){if(!audio())return;const t=AC.currentTime+cam.position.distanceTo(p)/343;nz(t,.25,3200,500,.5*pw,'bandpass');th(t,240,70,.18,.35*pw)}
 function sparks(p,n){for(let i=0;i<n;i++)ember(p.clone(),new THREE.Vector3(rnd(-1,1),rnd(.3,1.2),rnd(-1,1)).normalize().multiplyScalar(rnd(4,9)),rnd(.3,.8))}
-function damagePlayer(d){if(pl.dead)return;d*=run?TRANSFORM_ARMOR:ARMOR[mode];pl.hp-=d;pl.lastHit=clock;hurtA=Math.min(1,hurtA+d/30);trauma=Math.min(1,trauma+d/60);
-  sparks(new THREE.Vector3(car.x,car.y+1.2,car.z),8);hitClank(root.position,1);
+// Mech shield: blasts arriving from the front arc (from 57° left to 75° right, the shield side) do SHIELD_BLOCK of their damage
+const SHIELD_BLOCK=.25,SHIELD_ARC=[-1,1.3],RAM_DMG=35;
+function shieldBlocks(from){if(!from||mode!==2||run)return false;const dx=from.x-car.x,dz=from.z-car.z;if(Math.hypot(dx,dz)<.8)return false;
+  const a=Math.atan2(dx*Math.sin(car.h)+dz*Math.cos(car.h),dx*Math.cos(car.h)-dz*Math.sin(car.h)); // 0 = dead ahead, + = right/shield side
+  return a>SHIELD_ARC[0]&&a<SHIELD_ARC[1]}
+function damagePlayer(d,from){if(pl.dead)return;d*=run?TRANSFORM_ARMOR:ARMOR[mode];
+  if(shieldBlocks(from)){d*=SHIELD_BLOCK;const q=new THREE.Vector3();ARM.shield.o.getWorldPosition(q);sparks(q,14);
+    if(audio()){const t=AC.currentTime;nz(t,.35,5200,1800,.55,'bandpass');th(t,620,300,.3,.3)}} // bright clang off the plate
+  else{sparks(new THREE.Vector3(car.x,car.y+1.2,car.z),8);hitClank(root.position,1)}
+  pl.hp-=d;pl.lastHit=clock;hurtA=Math.min(1,hurtA+d/30);trauma=Math.min(1,trauma+d/60);
   if(pl.hp<=0){pl.hp=0;pl.dead=true;AIM.lock=null;firing=false;
     explode(new THREE.Vector3(car.x,car.y+.8,car.z),1.4);slowT=.35;
     let tt=0;addFx(null,14,(f,k,dt)=>{tt+=dt;if(tt>.12&&pl.dead){tt=0;const q=new THREE.Vector3(car.x+rnd(-.6,.6),car.y+1,car.z+rnd(-.6,.6));fireball(q,new THREE.Vector3(0,rnd(1,2),0),.35,.9*(1-k),rnd(.4,.7));smoke(q.clone().setY(q.y+.8),new THREE.Vector3(rnd(-.2,.2),rnd(1.5,2.5),rnd(-.2,.2)),0x221F1B,.7,3.2,rnd(4,6),.6)}});
@@ -22,7 +30,7 @@ function damageEnemy(e,d){if(e.dead)return;e.hp-=d;e.flash=1;sparks(new THREE.Ve
   if(e.hp<=0){e.hp=0;e.dead=true;e.deadT=0;kills++;killsEl.textContent=kills;e.bar.style.display='none';
     e.g.traverse(o=>{if(o.isMesh)o.material=charM});explode(new THREE.Vector3(e.x,e.y+.8,e.z),1.5);toast('Crawler destroyed')}}
 function applyBlast(p,pw){const R=2.3*pw+1.2;
-  if(!pl.dead){const d=Math.hypot(p.x-car.x,p.y-(car.y+1),p.z-car.z);if(d<R)damagePlayer(PL_DMG*pw*(1-d/R))}
+  if(!pl.dead){const d=Math.hypot(p.x-car.x,p.y-(car.y+1),p.z-car.z);if(d<R)damagePlayer(PL_DMG*pw*(1-d/R),p)}
   enemies.slice().forEach(e=>{if(e.dead)return;const d=Math.hypot(p.x-e.x,p.y-(e.y+.8),p.z-e.z);if(d<R)damageEnemy(e,EN_DMG*pw*(1-d/R))})}
 function spawnShell(p,v,pw,owner,r,col,gs){const s=mk(new THREE.SphereGeometry(r,10,8),steel,p.x,p.y,p.z);s.add(S(glowT,col,true,.9,gs));const sh={m:s,pw,v,tt:0,owner};shots.push(sh);return sh}
 // Step a shell forward without spawning it; returns where it would land (used for enemy incoming warnings)
@@ -43,7 +51,7 @@ function makeEnemy(x,z){const g=new THREE.Group();g.rotation.order='YZX';sc.add(
   const m=new THREE.Object3D();m.position.x=1.7;bp.add(m);
   const bar=document.createElement('div');bar.className='ebar';bar.innerHTML='<i></i>';ebars.appendChild(bar);
   const e={g,tur,bp,muz:m,lamp,lampM,bar,x,z,y:gh(x,z),h:Math.random()*6.28,v:0,pitch:0,roll:0,hp:EN_HP,dead:false,deadT:0,flash:0,
-    reload:rnd(2,4),tYaw:0,tElev:.1,wp:null,strafe:Math.random()<.5?1:-1,strafeT:rnd(3,7),lead:rnd(.55,.95)};
+    reload:rnd(2,4),tYaw:0,tElev:.1,wp:null,strafe:Math.random()<.5?1:-1,strafeT:rnd(3,7),lead:rnd(.55,.95),kx:0,kz:0,stun:0,rammed:-9};
   enemies.push(e);return e}
 function spawnEnemy(){let x=0,z=0;for(let i=0;i<20;i++){const a=Math.random()*6.28;x=Math.cos(a)*46;z=Math.sin(a)*46;if(Math.hypot(x-car.x,z-car.z)>32)break}makeEnemy(x,z)}
 function removeEnemy(e){sc.remove(e.g);e.bar.remove();enemies.splice(enemies.indexOf(e),1)}
@@ -58,11 +66,18 @@ function pushOut(o,cx,cz,m){const dx=o.x-cx,dz=o.z-cz,d=Math.hypot(dx,dz);if(d<m
 function enemyTick(e,dt){
   if(e.dead){e.deadT+=dt;if(e.deadT>14)e.g.position.y-=dt*.3;if(e.deadT>20)removeEnemy(e);return}
   const dx=car.x-e.x,dz=car.z-e.z,d=Math.hypot(dx,dz),engage=!pl.dead&&d<EN_RANGE,toP=Math.atan2(-dz,dx);
+  // knockback from bashes/rams, and a stun that stops it driving and firing
+  e.x+=e.kx*dt;e.z+=e.kz*dt;const kd=Math.exp(-dt*4);e.kx*=kd;e.kz*=kd;e.stun=Math.max(0,e.stun-dt);
+  // mech ram: running into a crawler head-on damages and shoves it
+  if(!pl.dead&&mode===2&&!run&&runK>.5&&d<1.5+CR+.4&&clock-e.rammed>.8){const fx=Math.cos(car.h),fz=-Math.sin(car.h);
+    if((-dx*fx-dz*fz)/Math.max(d,.01)>.5){e.rammed=clock;damageEnemy(e,RAM_DMG*runK);e.kx+=fx*10;e.kz+=fz*10;e.stun=.8;car.v*=.6;trauma=Math.min(1,trauma+.35);
+      if(audio()){const t=AC.currentTime;th(t,80,30,.35,.8);nz(t,.3,1500,120,.6)}}}
   let want,spd;
   if(engage){ // close in, back off, or circle-strafe inside the preferred band
     if(d>EN_PREF[1]){want=toP;spd=5}else if(d<EN_PREF[0]){want=toP;spd=-3}else{want=toP+e.strafe*PI/2;spd=3.2}
     e.strafeT-=dt;if(e.strafeT<0){e.strafe*=-1;e.strafeT=rnd(3,7)}}
   else{if(!e.wp||Math.hypot(e.wp.x-e.x,e.wp.z-e.z)<3)e.wp={x:rnd(-45,45),z:rnd(-45,45)};want=Math.atan2(-(e.wp.z-e.z),e.wp.x-e.x);spd=3.5}
+  if(e.stun>0)spd=0;
   let dh=want-e.h;dh=Math.atan2(Math.sin(dh),Math.cos(dh));e.h+=Math.max(-1.2*dt,Math.min(1.2*dt,dh));
   e.v+=(spd*Math.max(0,Math.cos(dh))-e.v)*Math.min(1,dt*2);
   const fx=Math.cos(e.h),fz=-Math.sin(e.h);e.x+=fx*e.v*dt;e.z+=fz*e.v*dt;
@@ -84,7 +99,7 @@ function enemyTick(e,dt){
   let ey=e.tYaw-e.tur.rotation.y;ey=Math.atan2(Math.sin(ey),Math.cos(ey));e.tur.rotation.y=Math.atan2(Math.sin(e.tur.rotation.y+Math.max(-1.6*dt,Math.min(1.6*dt,ey))),Math.cos(e.tur.rotation.y+Math.max(-1.6*dt,Math.min(1.6*dt,ey))));
   e.bp.rotation.z+=Math.max(-dt,Math.min(dt,e.tElev-e.bp.rotation.z));
   laid=Math.abs(ey)<.04&&Math.abs(e.tElev-e.bp.rotation.z)<.03;
-  if(engage&&inRange&&laid&&e.reload<=0){enemyFire(e);e.reload=rnd(2.4,3.4)}
+  if(engage&&inRange&&laid&&e.reload<=0&&e.stun<=0){enemyFire(e);e.reload=rnd(2.4,3.4)}
   // lamp brightens as the next shot gets close: a tell before it fires
   e.flash=Math.max(0,e.flash-dt*4);e.lampM.emissiveIntensity=engage?.6+3*Math.max(0,1-e.reload/1):(.3+.2*Math.sin(clock*3));
   e.lampM.emissive.setHex(e.flash>0?0xffffff:0xff2a10)}
