@@ -6,11 +6,12 @@
 // rebuild only the chunks they touch. Normals come from the heightfield, so chunk edges have no lighting seams.
 const GS=MAP.size,STEP=.5,GN=Math.round(GS/STEP),CH=64,NC=Math.ceil(GN/CH); // CH cells per chunk side (32 m)
 const gHt=new Float32Array((GN+1)*(GN+1)),gCol=new Float32Array((GN+1)*(GN+1)*3),gI=(c,r)=>r*(GN+1)+c;
-const groundM=new THREE.MeshStandardMaterial({map:dirtT,vertexColors:true,roughness:1,metalness:0});dirtT.repeat.set(1,1);
+const MAPSPACE=MAP.ground==='town'; // town: one painted texture across the whole map (roads, lots); otherwise tiled dirt
+const groundM=new THREE.MeshStandardMaterial({map:MAPSPACE?paintTownGround(MAP.size):dirtT,vertexColors:true,roughness:MAPSPACE?.92:1,metalness:0});dirtT.repeat.set(1,1);
 const chunks=[];
 for(let cz=0;cz<NC;cz++)for(let cx=0;cx<NC;cx++){const c0=cx*CH,r0=cz*CH,w=Math.min(GN,c0+CH)-c0+1,h=Math.min(GN,r0+CH)-r0+1,n=w*h;
   const geo=new THREE.BufferGeometry(),pos=new Float32Array(n*3),uv=new Float32Array(n*2),idx=[];
-  for(let r=0;r<h;r++)for(let c=0;c<w;c++){const k=r*w+c,x=(c0+c)*STEP-GS/2,z=(r0+r)*STEP-GS/2;pos[k*3]=x;pos[k*3+2]=z;uv[k*2]=x/8.6;uv[k*2+1]=-z/8.6}
+  for(let r=0;r<h;r++)for(let c=0;c<w;c++){const k=r*w+c,x=(c0+c)*STEP-GS/2,z=(r0+r)*STEP-GS/2;pos[k*3]=x;pos[k*3+2]=z;if(MAPSPACE){uv[k*2]=(x+GS/2)/GS;uv[k*2+1]=1-(z+GS/2)/GS}else{uv[k*2]=x/8.6;uv[k*2+1]=-z/8.6}}
   for(let r=0;r<h-1;r++)for(let c=0;c<w-1;c++){const p=r*w+c;idx.push(p,p+w,p+1,p+1,p+w,p+w+1)} // CCW seen from above
   geo.setIndex(idx);geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('normal',new THREE.BufferAttribute(new Float32Array(n*3),3));
   geo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(n*3),3));geo.setAttribute('uv',new THREE.BufferAttribute(uv,2));
@@ -27,7 +28,7 @@ function editGround(x,z,rad,fn){const c0=Math.max(0,Math.floor((x-rad+GS/2)/STEP
   if(c0>c1||r0>r1)return;for(let r=r0;r<=r1;r++)for(let c=c0;c<=c1;c++)fn(gI(c,r),c*STEP-GS/2,r*STEP-GS/2);
   chunks.forEach(ch=>{if(ch.c0<=c1+1&&ch.c0+ch.w-1>=c0-1&&ch.r0<=r1+1&&ch.r0+ch.h-1>=r0-1)rebuildChunk(ch,c0-1,c1+1,r0-1,r1+1)})} // ±1 so neighbouring normals update
 function initGround(){for(let r=0;r<=GN;r++)for(let c=0;c<=GN;c++){const i=gI(c,r),x=c*STEP-GS/2,z=r*STEP-GS/2;gHt[i]=MAP.height(x,z);
-    const n=.86+.1*Math.sin(x*.21+Math.sin(z*.13)*2)*Math.cos(z*.17)+.04*Math.sin(x*1.3+z*.9);gCol[i*3]=n;gCol[i*3+1]=n*.98;gCol[i*3+2]=n*.94}
+    const A=MAP.groundNoise??.1,n=1-1.4*A+A*Math.sin(x*.21+Math.sin(z*.13)*2)*Math.cos(z*.17)+.4*A*Math.sin(x*1.3+z*.9);gCol[i*3]=n;gCol[i*3+1]=n*.98;gCol[i*3+2]=n*.94}
   chunks.forEach(ch=>rebuildChunk(ch))}
 initGround();
 // Ground height at any point (bilinear between samples; clamps at the map edge)

@@ -4,7 +4,7 @@
 // ---------- Mode switching and main loop ----------
 let mode=0,prev=0,T=9,run=false,lift=0,liftF=0,rec=0,mf=0,lookY=1.2;const LIFT=[0,.4,0],LOOK=[1.2,1.4,2.8],shots=[];let last=performance.now(),clock=0;
 const TXT=['Buggy mode. WASD to drive, mouse aims, click to fire.','Artillery mode. Planted, long range.','Mech mode. WASD walk, Shift run (rams through stuff), F shield bash, click to fire. Shield blocks hits from the front.'];
-const modeBtns=document.querySelectorAll('button[data-m]');
+const modeBtns=document.querySelectorAll('button[data-m]');let camPull=1;const _camA=new THREE.Vector3(),_camP=new THREE.Vector3();
 function setMode(m){if(pl.dead||(m===mode&&!run))return;prev=mode;mode=m;modeBtns.forEach(b=>b.classList.toggle('on',+b.dataset.m===m));parts.forEach(pt=>{const o=pt.o;pt.f={p:o.position.toArray(),r:[o.rotation.x,o.rotation.y,o.rotation.z],s:o.scale.toArray()}});liftF=lift;T=0;run=true;st.textContent='Transforming…';if(audio()){const t=AC.currentTime;for(let i=0;i<6;i++){nz(t+i*.12,.12,3000,800,.25,'bandpass');th(t+i*.12,rnd(300,500),rnd(80,150),.1,.15)}}}
 const mflash=S(puffT,0xFFD27A,true,0,1);sc.add(mflash);
 function loop(now){const rdt=Math.min(.05,(now-last)/1000);last=now;clock+=rdt;let ts=1;if(slowT>0){slowT-=rdt;ts=.18}const dt=rdt*ts;
@@ -16,7 +16,7 @@ pl.slump+=((pl.dead?1:0)-pl.slump)*Math.min(1,dt*3); // wrecked: sag and list to
 root.position.set(car.x-hx*kick,car.y+lift+bob-pl.slump*.35,car.z-hz*kick);
 root.rotation.set(car.roll+sway+pl.slump*.22,car.h,car.pitch+rec*(mode===0?.08:mode===1?.04:.02)-pl.slump*.08);
 poseLegs();smashTick(dt);poseArm();heatTick(dt);reloadT=Math.max(0,reloadT-dt);aimTick(dt);if(firing&&mode!==1)fire(); // hold to keep firing (artillery: one per click)
-sun.position.set(car.x+10,12,car.z+8);sun.target.position.set(car.x,0,car.z);
+sun.position.set(car.x+SUN_DIR[0],SUN_DIR[1],car.z+SUN_DIR[2]);if(skyDome)skyDome.position.copy(cam.position);sun.target.position.set(car.x,0,car.z);
 muz.position.x=1.6+1.6*extP.scale.x;
 mf=Math.max(0,mf-dt*10);muz.getWorldPosition(mflash.position);mflash.material.opacity=mf;mflash.scale.setScalar((mode===1?2.6:1.5)*(.6+(1-mf)*.8));muzL.intensity=mf*7;muzL.position.copy(mflash.position);
 flashL.intensity*=Math.exp(-dt*6);
@@ -38,7 +38,12 @@ const ak=AIM.k*.35,yaw=baseYaw+lookOff,ax=car.x+hx*2.5,az=car.z+hz*2.5,tx=L(ax,i
 sc.fog.near=L(MAP.fog[0],MAP.fog[0]+18,AIM.k);sc.fog.far=L(MAP.fog[1],MAP.fog[1]+55,AIM.k);
 trauma=Math.max(0,trauma-rdt*1.1);const sh=trauma*trauma*.9,ox=sh*(Math.sin(clock*41)+Math.sin(clock*67))*.5,oy=sh*(Math.sin(clock*53)+Math.sin(clock*29))*.5;
 const cx=ax+Math.cos(yaw)*Math.cos(camEl)*camR,cz=az+Math.sin(yaw)*Math.cos(camEl)*camR;
-cam.position.set(cx+ox,Math.max(gh(cx,cz)+.6,ty+Math.sin(camEl)*camR)+oy,cz);cam.lookAt(tx+ox*.4,ty+oy*.4,tz);
+// keep buildings from blocking the view: if a piece sits between the vehicle and the camera, pull the camera in
+// (snaps in quickly, eases back out)
+{const cy=Math.max(gh(cx,cz)+.6,ty+Math.sin(camEl)*camR),a=_camA.set(car.x,car.y+lookY,car.z);let want=1;
+  for(let k=1;k<=18;k++){const f=k/18;_camP.set(L(a.x,cx,f),L(a.y,cy,f),L(a.z,cz,f));if(piecesNear(_camP.x,_camP.z,.4).some(pc=>pieceHitShot(pc,_camP))){want=Math.max(.12,(k-1.6)/18);break}}
+  camPull+=(want-camPull)*Math.min(1,rdt*(want<camPull?18:2.5));
+  cam.position.set(L(a.x,cx,camPull)+ox,Math.max(gh(L(a.x,cx,camPull),L(a.z,cz,camPull))+.6,L(a.y,cy,camPull))+oy,L(a.z,cz,camPull))}cam.lookAt(tx+ox*.4,ty+oy*.4,tz);
 R.render(sc,cam);requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
 st.textContent=TXT[0]+' Right-drag to look, scroll to zoom.';

@@ -17,13 +17,35 @@ function brickDraw(g,w,h){g.fillStyle='#7a4434';g.fillRect(0,0,w,h);const bh=10,
 function concDraw(g,w,h){g.fillStyle='#8a867c';g.fillRect(0,0,w,h);grime(g,w,h);g.fillStyle='rgba(40,36,30,.35)';for(let y=48;y<h;y+=64)g.fillRect(0,y,w,2);
   for(let i=0;i<14;i++){g.fillStyle=`rgba(60,50,40,${Math.random()*.25})`;g.fillRect(Math.random()*w,Math.random()*h*.3,3+Math.random()*10,40+Math.random()*120)}}
 function corrDraw(g,w,h){g.fillStyle='#6b5a45';g.fillRect(0,0,w,h);for(let x=0;x<w;x+=16){const gr=g.createLinearGradient(x,0,x+16,0);gr.addColorStop(0,'rgba(0,0,0,.28)');gr.addColorStop(.5,'rgba(255,255,255,.12)');gr.addColorStop(1,'rgba(0,0,0,.28)');g.fillStyle=gr;g.fillRect(x,0,16,h)}grime(g,w,h);rustBlobs(g,w,h,40)}
-const STYLE_DRAW={brick:brickDraw,concrete:concDraw,corr:corrDraw},STYLES=Object.keys(STYLE_DRAW),VARIANTS=['win','shop','plain'];
-function facadeTex(style,variant){return tex(256,256,(g,w,h)=>{STYLE_DRAW[style](g,w,h);
+// Modern town styles: stucco, clean brick (mbrick), precast concrete (mconc), glass curtain wall (mglass)
+const noise=(g,w,h,n,a)=>{for(let i=0;i<n;i++){const v=Math.random()>.5?255:0;g.fillStyle=`rgba(${v},${v},${v},${Math.random()*a})`;g.fillRect(Math.random()*w,Math.random()*h,1+Math.random()*3,1+Math.random()*3)}};
+function stuccoDraw(g,w,h){g.fillStyle='#ddd2bd';g.fillRect(0,0,w,h);noise(g,w,h,900,.05);g.fillStyle='#c9bca2';g.fillRect(0,0,w,h*.05);g.fillStyle='rgba(0,0,0,.06)';g.fillRect(0,h*.05,w,h*.02)}
+function mbrickDraw(g,w,h){g.fillStyle='#d4cdc2';g.fillRect(0,0,w,h);const bh=9,bw=26;for(let y=0,row=0;y<h;y+=bh,row++)for(let x=(row%2)*-bw/2;x<w;x+=bw){g.fillStyle=`rgb(${150+Math.random()*25|0},${66+Math.random()*16|0},${50+Math.random()*12|0})`;g.fillRect(x+1,y+1,bw-2,bh-2)}noise(g,w,h,300,.04)}
+function mconcDraw(g,w,h){g.fillStyle='#c7c5bf';g.fillRect(0,0,w,h);noise(g,w,h,700,.05);g.fillStyle='rgba(70,68,62,.35)';g.fillRect(0,0,w,2);g.fillRect(0,0,2,h);g.fillRect(w/2,0,1,h)}
+function mglassDraw(g,w,h){const gr=g.createLinearGradient(0,0,w,h);gr.addColorStop(0,'#7fa9c9');gr.addColorStop(.45,'#3c6788');gr.addColorStop(1,'#1d3247');g.fillStyle=gr;g.fillRect(0,0,w,h);
+  g.fillStyle='rgba(255,255,255,.12)';g.beginPath();g.moveTo(w*.1,0);g.lineTo(w*.35,0);g.lineTo(0,h*.6);g.lineTo(0,h*.3);g.fill();
+  g.fillStyle='#596570';for(let x=0;x<=w;x+=w/3)g.fillRect(x-2,0,4,h);for(let y=0;y<=h;y+=h/2)g.fillRect(0,y-3,w,6)}
+const STYLE_DRAW={brick:brickDraw,concrete:concDraw,corr:corrDraw,stucco:stuccoDraw,mbrick:mbrickDraw,mconc:mconcDraw,mglass:mglassDraw},STYLES=Object.keys(STYLE_DRAW),MODERN={stucco:1,mbrick:1,mconc:1,mglass:1};
+const AWNINGS=['#b03a2e','#2e6da4','#2a8a55'];
+function modernWindow(g,w,h,wide){const x0=w*(wide?.08:.24),x1=w*(wide?.92:.76),y0=h*.24,y1=h*.7;g.fillStyle='#efede7';g.fillRect(x0-5,y0-5,x1-x0+10,y1-y0+10);
+  const gr=g.createLinearGradient(0,y0,0,y1);gr.addColorStop(0,'#a9c8de');gr.addColorStop(1,'#26394a');g.fillStyle=gr;g.fillRect(x0,y0,x1-x0,y1-y0);
+  g.fillStyle='#efede7';g.fillRect((x0+x1)/2-2,y0,4,y1-y0);if(wide)[.33,.67].forEach(f=>g.fillRect(x0+(x1-x0)*f-2,y0,4,y1-y0));g.fillStyle='rgba(0,0,0,.18)';g.fillRect(x0-5,y1+5,x1-x0+10,4)}
+function storefront(g,w,h,aw){g.fillStyle='#2b2b2b';g.fillRect(0,h*.2,w,h*.1);g.fillStyle='rgba(255,255,255,.5)';for(let x=w*.15;x<w*.85;x+=14)g.fillRect(x,h*.235,7,h*.03); // sign band
+  g.fillStyle=aw;g.fillRect(0,h*.3,w,h*.07);g.fillStyle='rgba(255,255,255,.35)';for(let x=0;x<w;x+=20)g.fillRect(x,h*.3,10,h*.07); // striped awning
+  const gr=g.createLinearGradient(0,h*.4,0,h);gr.addColorStop(0,'#8fb4cc');gr.addColorStop(1,'#1f2c36');g.fillStyle='#3a3f44';g.fillRect(w*.04,h*.38,w*.92,h*.62);g.fillStyle=gr;g.fillRect(w*.07,h*.41,w*.86,h*.59);
+  g.fillStyle='#3a3f44';g.fillRect(w*.48,h*.41,w*.04,h*.59)}
+function facadeTex(style,variant){return tex(256,256,(g,w,h)=>{
+  if(MODERN[style]){ // modern: framed windows, lobbies, storefronts with coloured awnings (variant 'shop0'..'shop2')
+    if(style==='mglass'){mglassDraw(g,w,h);if(variant==='plain'){g.fillStyle='#2e3a44';g.fillRect(0,h*.62,w,h*.38)}else if(variant.startsWith('shop')){g.fillStyle='#596570';g.fillRect(w*.38,h*.45,w*.24,h*.55);g.fillStyle='#1b2730';g.fillRect(w*.41,h*.5,w*.18,h*.5)}return}
+    STYLE_DRAW[style](g,w,h);if(variant==='win')modernWindow(g,w,h,style==='mconc');else if(variant.startsWith('shop'))storefront(g,w,h,AWNINGS[+variant.slice(4)||0]);return}
+  STYLE_DRAW[style](g,w,h);
   if(variant==='win'){g.fillStyle='#3a3530';g.fillRect(w*.27,h*.22,w*.46,h*.44);g.fillStyle='#15181b';g.fillRect(w*.3,h*.25,w*.4,h*.38);
     g.fillStyle='rgba(180,190,190,.25)';g.beginPath();g.moveTo(w*.3,h*.25);g.lineTo(w*.45,h*.25);g.lineTo(w*.3,h*.45);g.fill();g.fillStyle='#3a3530';g.fillRect(w*.49,h*.25,w*.02,h*.38)} // cracked pane, mullion
   else if(variant==='shop'){g.fillStyle='#2a2622';g.fillRect(w*.12,h*.35,w*.76,h*.65);for(let y=h*.37;y<h*.7;y+=7){g.fillStyle='rgba(120,110,95,.5)';g.fillRect(w*.13,y,w*.74,3)} // half-raised roller door
     g.fillStyle='#0f1112';g.fillRect(w*.13,h*.72,w*.74,h*.28);g.fillStyle='#a8832e';g.fillRect(w*.12,h*.33,w*.76,h*.03)}})}
-const facadeM={},plainM={};STYLES.forEach(st=>{VARIANTS.forEach(v=>facadeM[st+'_'+v]=SM(facadeTex(st,v),.9,.12));plainM[st]=facadeM[st+'_plain']});
+// Materials are made on first use, so a map only builds the facade textures it actually needs
+const facadeCache={},facadeM=new Proxy({},{get:(_,key)=>{if(!facadeCache[key]){const[st,v]=key.split('_');facadeCache[key]=st==='mglass'?new THREE.MeshStandardMaterial({map:facadeTex(st,v),roughness:.22,metalness:.35}):SM(facadeTex(st,v),MODERN[st]?.8:.9,MODERN[st]?.05:.12)}return facadeCache[key]}}),
+  plainM=new Proxy({},{get:(_,st)=>facadeM[st+'_plain']});
 const roofM=SM(tex(256,256,(g,w,h)=>{g.fillStyle='#4a4640';g.fillRect(0,0,w,h);grime(g,w,h);g.strokeStyle='rgba(20,18,15,.5)';for(let i=0;i<5;i++){g.beginPath();g.moveTo(Math.random()*w,0);g.lineTo(Math.random()*w,h);g.stroke()}}),.95,.05);
 
 // ---------- Build
@@ -33,10 +55,11 @@ const panelMatrix=p=>{_bq.setFromAxisAngle(new THREE.Vector3(0,1,0),p.rot);_bp.s
 function addBuilding(b,bi){const r=rng(MAP.seed*1000+bi*17+3),c=Math.cos(b.rot),s=Math.sin(b.rot),W=b.mx*MOD,D=b.mz*MOD;
   const toW=(lx,lz)=>[b.x+lx*c+lz*s,b.z-lx*s+lz*c];
   const gy=Math.min(gh(b.x,b.z),...[[1,1],[1,-1],[-1,1],[-1,-1]].map(([u,v])=>gh(...toW(u*W/2,v*D/2))))-.1;
-  const B={...b,W,D,c,s,gy,levels:[],slabs:[],collapsedFrom:b.floors,rubble:null};buildings.push(B);
+  const B={...b,W,D,c,s,gy,levels:[],slabs:[],collapsedFrom:b.floors,rubble:null};buildings.push(B);const shopC=Math.floor(r()*3); // one awning colour per building
   const piece=(o)=>{const p={c:Math.cos(o.rot),s:Math.sin(o.rot),state:0,lastRam:-9,bld:B,seed:Math.floor(r()*1e9),onState:o.kind==='slab'?slabState:panelState,...o};p.max=p.hp;pieces.push(p);return p};
   for(let f=0;f<b.floors;f++){const y0=gy+(f?FH0+(f-1)*FH:0),h=f?FH:FH0,lvl=[];B.levels.push(lvl);
-    const add=(lx,lz,rot,w)=>{const[x,z]=toW(lx,lz),v=f===0?(r()<.4?'shop':r()<.55?'win':'plain'):(r()<.72?'win':'plain'),key=b.style+'_'+v;
+    const modern=MODERN[b.style],add=(lx,lz,rot,w)=>{const[x,z]=toW(lx,lz);let v=f===0?(r()<(modern?.55:.4)?'shop':r()<.55?'win':'plain'):(r()<(modern?.85:.72)?'win':'plain');
+      if(v==='shop'&&modern)v='shop'+shopC;const key=b.style+'_'+v;
       const p=piece({kind:'panel',level:f,x,z,rot,w,d:PT,y0,gy:y0,H:[h,h*.6,0],hp:PANEL_HP[f?1:0],blocks:f===0,style:b.style,key,debrisM:plainM[b.style]});
       (instSpecs[key]=instSpecs[key]||[]).push(p);lvl.push(p)};
     [1,-1].forEach(side=>{for(let i=0;i<b.mx;i++)add((i-(b.mx-1)/2)*MOD,side*(D/2-PT/2),b.rot,MOD)});

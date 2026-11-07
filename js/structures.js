@@ -12,11 +12,15 @@ const corrM=[SM(corrTex('#6b5a45',5)),SM(corrTex('#5a5f4a',3)),SM(corrTex('#7a4a
 const STRUCT={wall:{h:2.6,d:.5,hp:120,dmgH:.55},shed:{h:3.3,hp:240,dmgH:.6}},STRUCT_DMG=60,BASH_STRUCT=130,RAM_STRUCT=130;
 const pieces=[];
 
-function addPiece(kind,x,z,rot,w,d,seed){const r=rng(seed),S=STRUCT[kind],h=S.h*(.9+r()*.2),c=Math.cos(rot),s=Math.sin(rot);
+const jerseyM=SM(tex(128,128,(g,w,h)=>{g.fillStyle='#cfccc4';g.fillRect(0,0,w,h);grime(g,w,h);g.fillStyle='rgba(60,55,48,.25)';g.fillRect(0,h*.85,w,h*.15)}),.85,0);
+// opt.style 'jersey': a low concrete traffic barrier (modern town) instead of a scrap-panel wall
+function addPiece(kind,x,z,rot,w,d,seed,opt={}){const r=rng(seed),S=STRUCT[kind],jersey=opt.style==='jersey',h=jersey?1.15:S.h*(.9+r()*.2),c=Math.cos(rot),s=Math.sin(rot);
   const gy=Math.min(gh(x,z),gh(x+c*w/2,z-s*w/2),gh(x-c*w/2,z+s*w/2))-.08;
-  const mat=corrM[Math.floor(r()*3)],G=[0,1,2].map(()=>{const g=new THREE.Group();g.position.set(x,gy,z);g.rotation.y=rot;sc.add(g);return g});
+  const mat=jersey?jerseyM:corrM[Math.floor(r()*3)],G=[0,1,2].map(()=>{const g=new THREE.Group();g.position.set(x,gy,z);g.rotation.y=rot;sc.add(g);return g});
   const box=(g,m,bw,bh,bd,px,py,pz,rx=0,rz=0)=>{const o=mk(B(bw,bh,bd),m,px,py,pz,g);o.rotation.x=rx;o.rotation.z=rz;return o};
-  if(kind==='wall'){
+  if(jersey){box(G[0],mat,w,h*.35,d+.25,0,h*.175,0);box(G[0],mat,w,h*.65,d*.6,0,h*.675,0);
+    for(let i=0;i<2;i++){const sw=w/2-.08,sh=h*(.3+r()*.5);box(G[1],mat,sw,sh,d+.1,(i-.5)*w/2,sh/2,0,(r()-.5)*.15,(r()-.5)*.2)}
+  }else if(kind==='wall'){
     box(G[0],mat,w,h,d,0,h/2,0);[-1,1].forEach(e=>box(G[0],steel,.16,h+.25,d+.12,e*(w/2-.08),(h+.25)/2,0));if(r()<.4)box(G[0],hazard,w*.9,.18,d+.04,0,h*.75,0);
     const n=3;for(let i=0;i<n;i++){const sh=h*(.25+r()*(S.dmgH+.15)),sw=w/n-.06;box(G[1],mat,sw,sh,d,(i-(n-1)/2)*(w/n),sh/2,0,(r()-.5)*.12,(r()-.5)*.15)}
     box(G[1],mat,w*.45,d,h*.45,(r()-.5)*w*.4,.3,d/2+h*.2,1.25,0);[-1,1].forEach(e=>box(G[1],steel,.16,h*.6,d+.12,e*(w/2-.08),h*.3,0,0,e*.12));
@@ -72,10 +76,10 @@ function resetStructures(){pieces.forEach(p=>{p.hp=p.max;setPieceState(p,0,null)
 
 // Build the layout (LAYOUT lives in world.js so scenery can avoid it). Walls are cut into ~2.5 m segments.
 LAYOUT.forEach((it,i)=>{if(it.k==='shed')addPiece('shed',it.x,it.z,it.rot,4.2,4.2,i*97+1);
-  else{const n=Math.max(1,Math.round(it.w/2.5)),sw=it.w/n,c=Math.cos(it.rot),s=Math.sin(it.rot);for(let j=0;j<n;j++){const o=(j-(n-1)/2)*sw;addPiece('wall',it.x+o*c,it.z-o*s,it.rot,sw-.05,STRUCT.wall.d,i*97+j*13+5)}}});
+  else{const n=Math.max(1,Math.round(it.w/2.5)),sw=it.w/n,c=Math.cos(it.rot),s=Math.sin(it.rot);for(let j=0;j<n;j++){const o=(j-(n-1)/2)*sw;addPiece('wall',it.x+o*c,it.z-o*s,it.rot,sw-.05,STRUCT.wall.d,i*97+j*13+5,it)}}});
 
 // Indestructible scrap perimeter just outside the play area (hides the map edge; shots already stop at ±58)
-(()=>{const r=rng(4242),per=[],e=HALF-1.1;for(let a=-HALF;a<=HALF;a+=2.1)per.push([a,-e,0],[a,e,0],[-e,a,PI/2],[e,a,PI/2]);
+if(MAP.perimeter!=='trees')(()=>{const r=rng(4242),per=[],e=HALF-1.1;for(let a=-HALF;a<=HALF;a+=2.1)per.push([a,-e,0],[a,e,0],[-e,a,PI/2],[e,a,PI/2]);
   [0,1,2].forEach(mi=>{const list=per.filter((_,i)=>i%3===mi),im=new THREE.InstancedMesh(B(2.3,1,.45),corrM[mi],list.length),m=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler();
     list.forEach(([x,z,ry],i)=>{const h=2.6+r()*3.4;e.set((r()-.5)*.12,ry+(r()-.5)*.25,(r()-.5)*.1);q.setFromEuler(e);m.compose(new THREE.Vector3(x,gh(x,z)+h/2-.3,z),q,new THREE.Vector3(1,h,1));im.setMatrixAt(i,m)});
     im.castShadow=im.receiveShadow=true;sc.add(im)})})();

@@ -10,7 +10,7 @@ const cam=new THREE.PerspectiveCamera(45,1,.1,200);
 const size=()=>{const w=cv.clientWidth||800,h=cv.clientHeight||500;R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()};size();window.addEventListener('resize',size);
 
 // ---------- Lighting ----------
-sc.add(new THREE.HemisphereLight(0xD8C8A8,0x3A3428,.75));
+const hemi=new THREE.HemisphereLight(0xD8C8A8,0x3A3428,.75);sc.add(hemi); // maps.js may recolour (blue sky)
 const sun=new THREE.DirectionalLight(0xFFD9A8,1.7);sun.position.set(10,12,8);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-24,right:24,top:24,bottom:-24});sun.shadow.bias=-.0005;sc.add(sun);
 const flashL=new THREE.PointLight(0xFF8A3A,0,40,2);sc.add(flashL);
 const muzL=new THREE.PointLight(0xFFC870,0,14,2);sc.add(muzL);
