@@ -48,7 +48,7 @@ const solidPieces=()=>pieces.filter(p=>p.state<2);
 
 function damagePiece(p,dmg,from){if(p.state===2)return;p.hp-=dmg;const ns=p.hp<=0?2:p.hp<=p.max*.5?1:0;if(ns>p.state)setPieceState(p,ns,from)}
 // Visual swap: walls/sheds toggle prebuilt groups; other kinds (building panels) provide onState. from=null: no effects.
-function setPieceState(p,s,from){p.state=s;if(p.onState)p.onState(p,s);else p.g.forEach((g,i)=>g.visible=i===s);if(!from)return;
+function setPieceState(p,s,from){p.state=s;navDirty(p);if(p.onState)p.onState(p,s);else p.g.forEach((g,i)=>g.visible=i===s);if(!from)return;
   const top=p.y0+p.H[Math.max(0,s-1)],o=new THREE.Vector3(p.x,p.y0+Math.min(1,p.H[0]/2),p.z);
   for(let i=0;i<(s===2?16:9);i++){const lx=(Math.random()-.5)*p.w,lz=(Math.random()-.5)*p.d,q=new THREE.Vector3(p.x+lx*p.c+lz*p.s,p.y0+rnd(.2,Math.max(.4,top-p.y0)),p.z-lx*p.s+lz*p.c);
     chunk(q,rnd(.18,.45),Math.random()<.6?p.debrisM:rusty,rnd(4,8),from,Math.random()<.3)}

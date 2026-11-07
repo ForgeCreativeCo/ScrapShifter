@@ -56,7 +56,7 @@ function makeEnemy(x,z){const g=new THREE.Group();g.rotation.order='YZX';sc.add(
   const e={g,tur,bp,muz:m,lamp,lampM,bar,x,z,y:gh(x,z),h:Math.random()*6.28,v:0,pitch:0,roll:0,hp:EN_HP,dead:false,deadT:0,flash:0,
     reload:rnd(2,4),tYaw:0,tElev:.1,wp:null,strafe:Math.random()<.5?1:-1,strafeT:rnd(3,7),lead:rnd(.55,.95),kx:0,kz:0,stun:0,rammed:-9,type:'crawler',r:1.5,hh:1.9,maxHp:EN_HP,barY:2.6};
   enemies.push(e);return e}
-function spawnPoint(){let x=0,z=0;for(let i=0;i<20;i++){const a=Math.random()*6.28;x=Math.cos(a)*MAP.spawn.ring;z=Math.sin(a)*MAP.spawn.ring;if(Math.hypot(x-car.x,z-car.z)>MAP.spawn.minDist&&!layoutNear(x,z))break}return[x,z]}
+function spawnPoint(){let x=0,z=0;for(let i=0;i<20;i++){const a=Math.random()*6.28;x=Math.cos(a)*MAP.spawn.ring;z=Math.sin(a)*MAP.spawn.ring;if(Math.hypot(x-car.x,z-car.z)>MAP.spawn.minDist&&!layoutNear(x,z)&&navReachable(x,z))break}return[x,z]}
 function spawnEnemy(){makeEnemy(...spawnPoint())}
 function removeEnemy(e){sc.remove(e.g);e.bar.remove();enemies.splice(enemies.indexOf(e),1)}
 function enemyFire(e){const p=new THREE.Vector3();e.muz.getWorldPosition(p);e.bp.getWorldQuaternion(_q);
@@ -78,18 +78,23 @@ function enemyTick(e,dt){
     if((-dx*fx-dz*fz)/Math.max(d,.01)>.5){e.rammed=clock;damageEnemy(e,RAM_DMG*runK);e.kx+=fx*10;e.kz+=fz*10;e.stun=.8;car.v*=.6;trauma=Math.min(1,trauma+.35);
       if(audio()){const t=AC.currentTime;th(t,80,30,.35,.8);nz(t,.3,1500,120,.6)}}}
   let want,spd;
-  if(engage){ // close in, back off, or circle-strafe inside the preferred band
-    if(d>EN_PREF[1]){want=toP;spd=5}else if(d<EN_PREF[0]){want=toP;spd=-3}else{want=toP+e.strafe*PI/2;spd=3.2}
+  // line of fire to the player (through holes / over low walls), refreshed a few times a second
+  if(engage){e.losT=(e.losT||0)-dt;if(e.losT<=0){e.losT=.3;e.los=fireLine(new THREE.Vector3(e.x,e.y+1.6,e.z),new THREE.Vector3(car.x,car.y+1.2,car.z))}}else e.los=false;
+  if(engage){ // path in until in range with a clear shot; then back off if too close, or circle-strafe in the band
+    if(d>EN_PREF[1]||!e.los){want=navWant(e,car.x,car.z,dt);spd=5}else if(d<EN_PREF[0]){want=toP;spd=-3}else{want=toP+e.strafe*PI/2;spd=3.2}
     e.strafeT-=dt;if(e.strafeT<0){e.strafe*=-1;e.strafeT=rnd(3,7)}}
-  else{if(!e.wp||Math.hypot(e.wp.x-e.x,e.wp.z-e.z)<3)e.wp={x:rnd(-PLAY,PLAY)*.8,z:rnd(-PLAY,PLAY)*.8};want=Math.atan2(-(e.wp.z-e.z),e.wp.x-e.x);spd=3.5}
+  else{e.huntT=(e.huntT||0)-dt;if(!e.wp||e.huntT<=0||Math.hypot(e.wp.x-e.x,e.wp.z-e.z)<4){e.wp=pl.dead?navRandomPoint():navRandomPoint(car.x,car.z,30);e.huntT=rnd(6,10)} // hunt: roam toward the player's area
+    want=navWant(e,e.wp.x,e.wp.z,dt);spd=pl.dead?3.5:4.5}
+  if(engage&&e.los&&d>=EN_PREF[0]&&d<=EN_PREF[1]){const ax=e.x+Math.cos(want)*3,az=e.z-Math.sin(want)*3;if(navBlocked(nIdx(toCell(ax),toCell(az)))){e.strafe*=-1;want=toP+e.strafe*PI/2}} // strafing into a wall: switch direction
+  if(e.unstick>0){e.unstick-=dt;want=e.h+e.strafe;spd=-2.5} // stuck: back up while turning
   if(e.stun>0)spd=0;
   let dh=want-e.h;dh=Math.atan2(Math.sin(dh),Math.cos(dh));e.h+=Math.max(-1.2*dt,Math.min(1.2*dt,dh));
   e.v+=(spd*Math.max(0,Math.cos(dh))-e.v)*Math.min(1,dt*2);
-  const fx=Math.cos(e.h),fz=-Math.sin(e.h);e.x+=fx*e.v*dt;e.z+=fz*e.v*dt;
-  for(const s of solids)if(pushOut(e,s.x,s.z,1.5+s.r)&&!engage)e.wp=null;
+  const fx=Math.cos(e.h),fz=-Math.sin(e.h);e.x+=fx*e.v*dt;e.z+=fz*e.v*dt;navStuck(e,dt,Math.abs(spd)>1&&e.stun<=0);
+  for(const s of solids)pushOut(e,s.x,s.z,1.5+s.r);
   for(const o of targets){const h=o.userData.h;pushOut(e,Math.max(o.position.x-h.x,Math.min(e.x,o.position.x+h.x)),Math.max(o.position.z-h.z,Math.min(e.z,o.position.z+h.z)),1.5)}
   for(const o of enemies)if(o!==e&&!o.dead)pushOut(e,o.x,o.z,3);
-  for(const pc of piecesNear(e.x,e.z,2.5))if(obbPush(e,pc,1.5)&&!engage)e.wp=null;
+  for(const pc of piecesNear(e.x,e.z,2.5))obbPush(e,pc,1.5);
   if(!pl.dead)pushOut(e,car.x,car.z,1.5+CR); // crawler stops against the player
   const lim=PLAY-1;e.x=Math.max(-lim,Math.min(lim,e.x));e.z=Math.max(-lim,Math.min(lim,e.z));
   const sx=Math.sin(e.h),sz=Math.cos(e.h),hf=gh(e.x+fx*1.2,e.z+fz*1.2),hb=gh(e.x-fx*1.2,e.z-fz*1.2),hl=gh(e.x+sx*.9,e.z+sz*.9),hr=gh(e.x-sx*.9,e.z-sz*.9),k=Math.min(1,dt*8);
@@ -105,7 +110,7 @@ function enemyTick(e,dt){
   let ey=e.tYaw-e.tur.rotation.y;ey=Math.atan2(Math.sin(ey),Math.cos(ey));e.tur.rotation.y=Math.atan2(Math.sin(e.tur.rotation.y+Math.max(-1.6*dt,Math.min(1.6*dt,ey))),Math.cos(e.tur.rotation.y+Math.max(-1.6*dt,Math.min(1.6*dt,ey))));
   e.bp.rotation.z+=Math.max(-dt,Math.min(dt,e.tElev-e.bp.rotation.z));
   laid=Math.abs(ey)<.04&&Math.abs(e.tElev-e.bp.rotation.z)<.03;
-  if(engage&&inRange&&laid&&e.reload<=0&&e.stun<=0){enemyFire(e);e.reload=rnd(2.4,3.4)}
+  if(engage&&inRange&&laid&&e.los&&e.reload<=0&&e.stun<=0){enemyFire(e);e.reload=rnd(2.4,3.4)}
   // lamp brightens as the next shot gets close: a tell before it fires
   e.flash=Math.max(0,e.flash-dt*4);e.lampM.emissiveIntensity=engage?.6+3*Math.max(0,1-e.reload/1):(.3+.2*Math.sin(clock*3));
   e.lampM.emissive.setHex(e.flash>0?0xffffff:0xff2a10)}
@@ -124,12 +129,14 @@ function makeBike(x,z){const g=new THREE.Group();g.rotation.order='YZX';sc.add(g
 function bikeTick(e,dt){const dx=car.x-e.x,dz=car.z-e.z,d=Math.hypot(dx,dz);e.t+=dt;
   e.x+=e.kx*dt;e.z+=e.kz*dt;const kd=Math.exp(-dt*4);e.kx*=kd;e.kz*=kd;e.stun=Math.max(0,e.stun-dt);
   let want,spd;
-  if(!pl.dead){want=Math.atan2(-dz,dx)+(d>10?Math.sin(e.t*2.2+e.seed)*.6:0);spd=BIKE.spd}
-  else{if(!e.wp||Math.hypot(e.wp.x-e.x,e.wp.z-e.z)<3)e.wp={x:rnd(-PLAY,PLAY)*.8,z:rnd(-PLAY,PLAY)*.8};want=Math.atan2(-(e.wp.z-e.z),e.wp.x-e.x);spd=5}
+  if(!pl.dead){const direct=navLine(e.x,e.z,car.x,car.z); // weave only in the open; follow the streets otherwise
+    want=direct?Math.atan2(-dz,dx)+(d>10?Math.sin(e.t*2.2+e.seed)*.6:0):navWant(e,car.x,car.z,dt);spd=BIKE.spd*(direct?1:.8)}
+  else{if(!e.wp||Math.hypot(e.wp.x-e.x,e.wp.z-e.z)<4)e.wp=navRandomPoint();want=navWant(e,e.wp.x,e.wp.z,dt);spd=5}
+  if(e.unstick>0){e.unstick-=dt;want=e.h+1;spd=-3}
   if(e.stun>0)spd=0;
   let dh=want-e.h;dh=Math.atan2(Math.sin(dh),Math.cos(dh));e.h+=Math.max(-BIKE.turn*dt,Math.min(BIKE.turn*dt,dh));
   e.v+=(spd*Math.max(.25,Math.cos(dh))-e.v)*Math.min(1,dt*1.5);
-  const fx=Math.cos(e.h),fz=-Math.sin(e.h);e.x+=fx*e.v*dt;e.z+=fz*e.v*dt;
+  const fx=Math.cos(e.h),fz=-Math.sin(e.h);e.x+=fx*e.v*dt;e.z+=fz*e.v*dt;navStuck(e,dt,Math.abs(spd)>1&&e.stun<=0);
   for(const s of solids)pushOut(e,s.x,s.z,.9+s.r);
   for(const o of targets){const h=o.userData.h;pushOut(e,Math.max(o.position.x-h.x,Math.min(e.x,o.position.x+h.x)),Math.max(o.position.z-h.z,Math.min(e.z,o.position.z+h.z)),.9)}
   for(const pc of piecesNear(e.x,e.z,2))obbPush(e,pc,.9);
@@ -145,7 +152,7 @@ function bikeTick(e,dt){const dx=car.x-e.x,dz=car.z-e.z,d=Math.hypot(dx,dz);e.t+
   e.flash=Math.max(0,e.flash-dt*5);e.lampM.emissiveIntensity=e.flash>0?3.5:.3;
   if(!pl.dead&&d<BIKE.fuse&&e.stun<=0)killEnemy(e,false)} // detonate
 const _sp=new THREE.Vector3();
-function combatTick(dt){
+function combatTick(dt){navFlush();navBudget=2; // at most 2 A* searches per frame
   enemies.slice().forEach(e=>enemyTick(e,dt));
   if(enemies.filter(e=>!e.dead&&e.type==='crawler').length<ENEMY_MAX){spawnT-=dt;if(spawnT<=0){spawnEnemy();spawnT=8}}
   if(!enemies.some(e=>!e.dead&&e.type==='bike')){bikeT-=dt;if(bikeT<=0){makeBike(...spawnPoint());bikeT=rnd(14,20)}}
