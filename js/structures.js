@@ -50,7 +50,9 @@ function pieceDist(p,v){const[lx,lz]=pieceLocal(p,v.x,v.z),dx=Math.max(Math.abs(
 function pieceHitShot(p,sp){if(p.state===2)return false;const[lx,lz]=pieceLocal(p,sp.x,sp.z);return Math.abs(lx)<p.w/2+.1&&Math.abs(lz)<p.d/2+.1&&sp.y<p.y0+p.H[p.state]&&sp.y>p.y0-.1}
 const solidPieces=()=>pieces.filter(p=>p.state<2);
 
-function damagePiece(p,dmg,from){if(p.state===2)return;p.hp-=dmg*(p.bld?TUNE.bldDmg:1)*(p.dmgMul||1);const ns=p.hp<=0?2:p.hp<=p.max*.5?1:0;if(ns>p.state)setPieceState(p,ns,from)}
+function damagePiece(p,dmg,from){if(p.state===2)return;
+  p.hp-=dmg*(p.bld?TUNE.bldDmg:1)*(p.dmgMul||1);const ns=p.hp<=0?2:p.hp<=p.max*.5?1:0;if(ns>p.state)setPieceState(p,ns,from);
+  if(from&&p.bld&&dmg>=BURN.ignite)ignite(p,.5)} // a real hit sets a building alight (fire.js)
 // Visual swap: walls/sheds toggle prebuilt groups; other kinds (building panels) provide onState. from=null: no effects.
 function setPieceState(p,s,from){p.state=s;navDirty(p);if(p.onState)p.onState(p,s);else p.g.forEach((g,i)=>g.visible=i===s);if(!from)return;
   const top=p.y0+p.H[Math.max(0,s-1)],o=new THREE.Vector3(p.x,p.y0+Math.min(1,p.H[0]/2),p.z);

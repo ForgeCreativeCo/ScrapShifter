@@ -6,7 +6,7 @@
 // swing [duty,1) it lifts and steps forward. Legs are half a cycle apart, so duty>.5 gives a heavy double-support walk
 // and duty<.5 gives a run with a flight phase. Leg parts live in root space, x forward, y up.
 // TUNE is live-editable from the Tune panel (T) and saved in this browser.
-const TUNE_DEF={walk:4.1,run:12,back:1.8,turn:1.1,accel:6.8,stride:1.7,runStride:2.6,stepH:.45,runStepH:.7,duty:.45,runDuty:.27,crouch:.22,bob:.1,sway:.035,lurch:.55,shake:.205,heatRun:22,heatCool:20,bldDmg:2.6,collapse:.6}; // Joe's tuned values
+const TUNE_DEF={walk:4.1,run:12,back:1.8,turn:1.1,accel:6.8,stride:1.7,runStride:2.6,stepH:.45,runStepH:.7,duty:.45,runDuty:.27,crouch:.22,bob:.1,sway:.035,lurch:.55,shake:.205,heatRun:22,heatCool:20,bldDmg:2.6,collapse:.6,fire:1}; // Joe's tuned values
 const TUNE=Object.assign({},TUNE_DEF);try{Object.assign(TUNE,JSON.parse(localStorage.getItem('scrapTune')||'{}'))}catch(e){}
 const HIP_Y=2.5,ANK_Y=.35,L1=1.15,L2=1.05;
 const LEGS=[{th:parts[0],sh:parts[2],ft:parts[4],kn:[parts[6],parts[7]],off:0},{th:parts[1],sh:parts[3],ft:parts[5],kn:[parts[8],parts[9]],off:.5}];
@@ -48,7 +48,7 @@ const TSPEC=[['Speed'],['walk','Walk speed',1,6,.1],['run','Run speed (Shift)',3
   ['Stride'],['stride','Walk stride',.8,2.4,.05],['runStride','Run stride',1.2,3.2,.05],['stepH','Walk step height',.1,.9,.01],['runStepH','Run step height',.2,1.2,.01],['duty','Walk foot-down time',.4,.75,.01],['runDuty','Run foot-down time',.25,.5,.01],
   ['Weight'],['crouch','Crouch',0,.6,.01],['bob','Body dip per step',0,.3,.005],['sway','Side sway',0,.12,.005],['lurch','Lurch',0,1,.01],['shake','Footfall shake',0,.3,.005],
   ['Heat'],['heatRun','Heat per second running',5,60,1],['heatCool','Cooling per second',5,50,1],
-  ['Buildings'],['bldDmg','Damage to buildings ×',.25,4,.05],['collapse','Collapse when this share of a floor is gone',.15,.8,.05]];
+  ['Buildings'],['bldDmg','Damage to buildings ×',.25,4,.05],['collapse','Collapse when this share of a floor is gone',.15,.8,.05],['fire','Fire × (spread and burn speed; 0 = off)',0,3,.05]];
 const tp=document.getElementById('tune'),tb=document.getElementById('tuneBtn');
 const saveTune=()=>{try{localStorage.setItem('scrapTune',JSON.stringify(TUNE))}catch(e){}};
 // One tab per section (Speed, Stride, Weight, Heat, Buildings) so every group is a click away instead of a long scroll

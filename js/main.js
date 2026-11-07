@@ -15,7 +15,7 @@ const kick=rec*(mode===1?0:.15),bob=(stepBob-G.C)*ikK,sway=mode===2?TUNE.sway*ga
 pl.slump+=((pl.dead?1:0)-pl.slump)*Math.min(1,dt*3); // wrecked: sag and list to one side
 root.position.set(car.x-hx*kick,car.y+lift+bob-pl.slump*.35,car.z-hz*kick);
 root.rotation.set(car.roll+sway+pl.slump*.22,car.h,car.pitch+rec*(mode===0?.08:mode===1?.04:.02)-pl.slump*.08);
-poseLegs();smashTick(dt);poseArm();heatTick(dt);carsTick(dt);reloadT=Math.max(0,reloadT-dt);aimTick(dt);if(firing&&mode!==1)fire(); // hold to keep firing (artillery: one per click)
+poseLegs();smashTick(dt);poseArm();heatTick(dt);carsTick(dt);fireTick(dt);reloadT=Math.max(0,reloadT-dt);aimTick(dt);if(firing&&mode!==1)fire(); // hold to keep firing (artillery: one per click)
 sun.position.set(car.x+SUN_DIR[0],SUN_DIR[1],car.z+SUN_DIR[2]);if(skyDome)skyDome.position.copy(cam.position);sun.target.position.set(car.x,0,car.z);
 muz.position.x=1.6+1.6*extP.scale.x;
 mf=Math.max(0,mf-dt*10);muz.getWorldPosition(mflash.position);mflash.material.opacity=mf;mflash.scale.setScalar((mode===1?2.6:1.5)*(.6+(1-mf)*.8));muzL.intensity=mf*7;muzL.position.copy(mflash.position);
@@ -54,7 +54,7 @@ spawnShell(p,dir.clone().multiplyScalar(spd),pw,'player',mode===1?.14:.1,0xFFAA5
 rec=mode===1?1:.7;mf=1;trauma=Math.min(1,trauma+(mode===1?.35:.18));fireSnd(mode);
 for(let i=0;i<(mode===1?10:5);i++)smoke(p.clone(),dir.clone().multiplyScalar(rnd(1.5,5)).add(new THREE.Vector3(rnd(-.6,.6),rnd(0,.8),rnd(-.6,.6))),0x8C857A,rnd(.3,.6),rnd(1.5,2.6)*(mode===1?1.4:1),rnd(1.4,2.6),.55);
 if(mode===1){for(let i=0;i<16;i++){const a=Math.random()*6.28,x=car.x+Math.cos(a)*1.4,z=car.z+Math.sin(a)*1.4;smoke(new THREE.Vector3(x,gh(x,z)+.3,z),new THREE.Vector3(Math.cos(a)*rnd(3,6),rnd(.2,.7),Math.sin(a)*rnd(3,6)),0x8A7A60,.6,2.6,rnd(1.4,2.4),.55)}}}
-function resetField(){buildTargets();initGround();resetStructures();resetBuildings();resetCombat();HEAT.v=0;HEAT.over=false}
+function resetField(){buildTargets();initGround();resetStructures();resetBuildings();resetFires();resetCombat();HEAT.v=0;HEAT.over=false}
 const sb=document.getElementById('snd');
 function toggleSound(){soundOn=!soundOn;sb.querySelector('span').textContent=soundOn?'Sound on':'Sound off'}
 modeBtns.forEach(b=>b.onclick=()=>setMode(+b.dataset.m));

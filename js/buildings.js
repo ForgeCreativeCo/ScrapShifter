@@ -85,7 +85,7 @@ function slabState(p,s){setInst(p,s===0);clearDmg(p);if(s===1){const g=new THREE
 let B_collapsing=false;
 function checkCollapse(B){for(let f=0;f<B.collapsedFrom;f++){const lv=B.levels[f],gone=lv.filter(p=>p.state===2).length;
   if(gone/lv.length>=TUNE.collapse){collapseFrom(B,f);return}}}
-function collapseFrom(B,f){B_collapsing=true;const was=B.collapsedFrom;B.collapsedFrom=f;
+function collapseFrom(B,f){const wasBurning=B.levels.flat().some(p=>p.fire>0);B_collapsing=true;const was=B.collapsedFrom;B.collapsedFrom=f;if(wasBurning&&f===0)fireSmoulder(B);
   for(let l=f;l<was;l++){B.levels[l].forEach(p=>{if(p.state<2){p.hp=0;setPieceState(p,2,null)}});const sl=B.slabs[l];if(sl.state<2){sl.hp=0;setPieceState(sl,2,null)}}
   if(f>0){const sl=B.slabs[f-1];if(sl.state<1){sl.hp=Math.min(sl.hp,sl.max*.5);setPieceState(sl,1,null)}} // falling floors crack the slab they land on
   B_collapsing=false;
@@ -110,5 +110,5 @@ function resetBuildings(){buildings.forEach(B=>{B.collapsedFrom=B.floors;if(B.ru
 (MAP.buildings||[]).forEach(addBuilding);
 Object.entries(instSpecs).forEach(([key,list])=>{const im=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),key==='roof'?roofM:facadeM[key],list.length);
   im.frustumCulled=false;im.castShadow=im.receiveShadow=true; // instances span the map; the base sphere would cull them wrongly
-  list.forEach((p,i)=>{p.inst={mesh:im,i,m:panelMatrix(p)};im.setMatrixAt(i,p.inst.m)});im.instanceMatrix.needsUpdate=true;sc.add(im);bldMeshes.push(im)});
+  list.forEach((p,i)=>{p.inst={mesh:im,i,m:panelMatrix(p)};im.setMatrixAt(i,p.inst.m);im.setColorAt(i,new THREE.Color(1,1,1))}); /* instance colour = fire scorch */im.instanceMatrix.needsUpdate=true;sc.add(im);bldMeshes.push(im)});
 buildPieceGrid();
