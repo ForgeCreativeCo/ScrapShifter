@@ -6,7 +6,9 @@
 // visuals are separate meshes created only when a panel changes state.
 // Classic script sharing one global scope with the other js/ files; load order is set in index.html.
 
-const MOD=4,FH0=5.6,FH=3.4,PT=.4,SLAB=.35,PANEL_HP=[130,90],SLAB_HP=160,COLLAPSE_FRAC=.5;
+// Toughness: HP per panel (ground floor, upper floors) and slab. Damage taken is scaled by TUNE.bldDmg and a floor
+// collapses once TUNE.collapse of its panels are gone (both live in the Tune panel).
+const MOD=4,FH0=5.6,FH=3.4,PT=.4,SLAB=.35,PANEL_HP=[70,50],SLAB_HP=100;
 
 // ---------- Facade textures: style (brick / concrete / corrugated) x variant (window / shopfront / plain)
 function brickDraw(g,w,h){g.fillStyle='#7a4434';g.fillRect(0,0,w,h);const bh=10,bw=28;
@@ -59,7 +61,7 @@ function slabState(p,s){setInst(p,s===0);clearDmg(p);if(s===1){const g=new THREE
 // ---------- Collapse
 let B_collapsing=false;
 function checkCollapse(B){for(let f=0;f<B.collapsedFrom;f++){const lv=B.levels[f],gone=lv.filter(p=>p.state===2).length;
-  if(gone/lv.length>=COLLAPSE_FRAC){collapseFrom(B,f);return}}}
+  if(gone/lv.length>=TUNE.collapse){collapseFrom(B,f);return}}}
 function collapseFrom(B,f){B_collapsing=true;const was=B.collapsedFrom;B.collapsedFrom=f;
   for(let l=f;l<was;l++){B.levels[l].forEach(p=>{if(p.state<2){p.hp=0;setPieceState(p,2,null)}});const sl=B.slabs[l];if(sl.state<2){sl.hp=0;setPieceState(sl,2,null)}}
   if(f>0){const sl=B.slabs[f-1];if(sl.state<1){sl.hp=Math.min(sl.hp,sl.max*.5);setPieceState(sl,1,null)}} // falling floors crack the slab they land on
