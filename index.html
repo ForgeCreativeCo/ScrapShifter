@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scrap Shifter Prototype</title>
+<style>
+  :root { --bg:#1d1b18; --panel:#2a2723; --text:#e9e4d8; --muted:#a59f92; --border:#4a453d; --accent:#ef9f27; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--text); font-family:system-ui, -apple-system, "Segoe UI", sans-serif; }
+  body { display:flex; flex-direction:column; }
+  #bar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:10px 16px; background:var(--panel); border-bottom:1px solid var(--border); }
+  button { background:transparent; color:var(--text); border:1px solid var(--border); border-radius:8px; padding:7px 12px; font:inherit; font-size:14px; cursor:pointer; }
+  button:hover { border-color:var(--accent); }
+  button.on { border-color:var(--accent); color:var(--accent); }
+  kbd { font-size:11px; color:var(--muted); margin-left:6px; }
+  #st { font-size:14px; color:var(--muted); margin-left:8px; }
+  #tune { position:fixed; top:64px; right:12px; width:270px; max-height:calc(100% - 80px); overflow:auto; background:rgba(42,39,35,.94); border:1px solid var(--border); border-radius:10px; padding:10px 12px; font-size:13px; display:none; z-index:5; }
+  #tune.open { display:block; }
+  #tune h4 { margin:10px 0 4px; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--accent); font-weight:600; }
+  #tune h4:first-child { margin-top:0; }
+  #tune label { display:grid; grid-template-columns:1fr 44px; gap:2px 8px; align-items:center; margin:5px 0; color:var(--muted); }
+  #tune label b { font-weight:400; color:var(--text); text-align:right; font-variant-numeric:tabular-nums; }
+  #tune input { grid-column:1 / -1; width:100%; accent-color:var(--accent); margin:0; }
+  #tune .row { display:flex; gap:6px; margin-top:10px; }
+  #tune .row button { flex:1; padding:6px 8px; font-size:13px; }
+  #hud { position:fixed; left:16px; bottom:16px; display:flex; gap:10px; align-items:center; pointer-events:none; z-index:4; }
+  #hud .pill { background:rgba(29,27,24,.82); border:1px solid var(--border); border-radius:8px; padding:7px 10px; font-size:13px; display:flex; align-items:center; gap:8px; }
+  #hud .lbl { color:var(--muted); font-size:11px; letter-spacing:.06em; text-transform:uppercase; }
+  #hpBar { width:150px; height:8px; background:#3a352e; border-radius:4px; overflow:hidden; }
+  #hpFill { height:100%; width:100%; background:#8fae5a; transition:width .15s, background .3s; }
+  #hpNum { min-width:26px; text-align:right; font-variant-numeric:tabular-nums; }
+  #toast { position:fixed; left:50%; top:96px; transform:translateX(-50%); background:rgba(29,27,24,.88); border:1px solid var(--border); border-radius:8px; padding:8px 14px; font-size:14px; opacity:0; transition:opacity .3s; pointer-events:none; z-index:4; white-space:nowrap; }
+  #toast.show { opacity:1; }
+  #hurt { position:fixed; inset:0; pointer-events:none; background:radial-gradient(ellipse at center, rgba(160,20,10,0) 45%, rgba(160,20,10,.55) 100%); opacity:0; z-index:3; }
+  #ebars { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:2; }
+  .ebar { position:absolute; width:46px; height:5px; margin-left:-23px; background:rgba(20,18,15,.75); border:1px solid rgba(0,0,0,.5); border-radius:3px; overflow:hidden; }
+  .ebar i { display:block; height:100%; background:#d8553a; }
+  #c { flex:1; width:100%; display:block; touch-action:none; cursor:crosshair; background:#9C9384; }
+</style>
+</head>
+<body>
+<div id="bar">
+  <button data-m="0" class="on">Buggy<kbd>1</kbd></button>
+  <button data-m="1">Artillery<kbd>2</kbd></button>
+  <button data-m="2">Mech<kbd>3</kbd></button>
+  <button id="fire">Fire<kbd>Space</kbd></button>
+  <button id="rst">Reset field<kbd>R</kbd></button>
+  <button id="snd"><span>Sound on</span><kbd>M</kbd></button>
+  <button id="tuneBtn">Tune<kbd>T</kbd></button>
+  <span id="st">Loading 3D view…</span>
+</div>
+<div id="tune"></div>
+<div id="hud"><div class="pill"><span class="lbl">Hull</span><div id="hpBar"><div id="hpFill"></div></div><span id="hpNum">100</span></div><div class="pill"><span class="lbl">Kills</span><span id="kills">0</span></div></div>
+<div id="toast"></div><div id="hurt"></div><div id="ebars"></div>
+<canvas id="c"></canvas>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// Report load/runtime errors in the status bar (each js/ file runs on its own, so there is no single try/catch).
+window.addEventListener('error',e=>{const s=document.getElementById('st');if(s)s.textContent='Something broke: '+e.message+(e.filename?' ('+e.filename.split('/').pop()+':'+e.lineno+')':'')});
+</script>
+<script src="js/core.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/world.js"></script>
+<script src="js/vehicle.js"></script>
+<script src="js/effects.js"></script>
+<script src="js/camera.js"></script>
+<script src="js/drive.js"></script>
+<script src="js/mech.js"></script>
+<script src="js/aim.js"></script>
+<script src="js/combat.js"></script>
+<script src="js/main.js"></script>
+<script>
+// A missing js/ file fails silently (no error event), so check that the last one ran.
+window.addEventListener('load',()=>{if(typeof loop==='undefined')document.getElementById('st').textContent='Could not load the js/ files. Keep index.html next to its js/ folder (or run: node serve.js).'});
+</script>
+</body>
+</html>

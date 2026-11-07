@@ -1,0 +1,10 @@
+// Synthesized sound (Web Audio, no files).
+// Classic script sharing one global scope with the other js/ files; load order is set in index.html.
+
+// ---------- Sound (synthesized with Web Audio) ----------
+let AC=null,master,noiseBuf,soundOn=true;
+function audio(){if(!soundOn)return null;if(!AC){const A=window.AudioContext||window.webkitAudioContext;if(!A)return null;AC=new A();const comp=AC.createDynamicsCompressor();master=AC.createGain();master.gain.value=.75;master.connect(comp);comp.connect(AC.destination);noiseBuf=AC.createBuffer(1,AC.sampleRate*3,AC.sampleRate);const d=noiseBuf.getChannelData(0);let b=0;for(let i=0;i<d.length;i++){const w=Math.random()*2-1;b=(b+.02*w)/1.02;d[i]=w*.6+b*3}}if(AC.state==='suspended')AC.resume();return AC}
+function nz(t,dur,f0,f1,vol,type){const s=AC.createBufferSource();s.buffer=noiseBuf;const f=AC.createBiquadFilter();f.type=type||'lowpass';f.frequency.setValueAtTime(f0,t);f.frequency.exponentialRampToValueAtTime(f1,t+dur);const g=AC.createGain();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(Math.min(1,vol),t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+dur);s.connect(f);f.connect(g);g.connect(master);s.start(t,Math.random()*1.5);s.stop(t+dur+.05)}
+function th(t,f0,f1,dur,vol){const o=AC.createOscillator();o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+dur);const g=AC.createGain();g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(Math.min(1,vol),t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+.05)}
+function boomSnd(pw,dist){if(!audio())return;const t=AC.currentTime+dist/343,a=1/(1+dist*.035);nz(t,.15,7000,1200,.55*a);nz(t,1+pw*.8,2200,70,.95*a);th(t,95,26,.7+pw*.4,1*a);nz(t+.06,2.4+pw,500,35,.4*a)}
+function fireSnd(m){if(!audio())return;const t=AC.currentTime;nz(t,.22,9000,900,.55);th(t,150,40,.3,.6);if(m===1){nz(t,1.5,1400,50,.8);th(t,70,22,1,1)}if(m===2){nz(t,.5,3000,200,.5,'bandpass');th(t,220,60,.25,.4)}}
