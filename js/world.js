@@ -10,13 +10,26 @@ const MAPSPACE=MAP.ground==='town'; // town: one painted texture across the whol
 const groundMap=MAPSPACE?paintTownGround(MAP.size):dirtT;dirtT.repeat.set(1,1);
 const groundM=new THREE.MeshStandardMaterial({map:groundMap,vertexColors:true,roughness:MAPSPACE?.92:1,metalness:0,normalMap:normalFromCanvas(groundMap.image,MAPSPACE?1.4:3,MAPSPACE?2048:512),normalScale:new THREE.Vector2(.7,.7)});
 const chunks=[];
+// Terrain LOD: far chunks draw every 2nd / 4th sample (same vertices, so craters and normals stay exact). The chunk's
+// border keeps full resolution and fans into the coarse interior, so neighbours at any level meet without cracks.
+const LOD_STEP=[1,2,4],LOD_DIST=[72,140]; // step 2 beyond 72 m from the camera, step 4 beyond 140 m
+function lodIndex(idx,w,h,s){const tri=(a,b,c)=>{const ax=a%w,az=(a/w|0),cr=(b%w-ax)*((c/w|0)-az)-((b/w|0)-az)*(c%w-ax);if(cr<0)idx.push(a,b,c);else idx.push(a,c,b)}; // keep the up-facing winding (cross<0)
+  for(let r=0;r<h-1;r+=s)for(let c=0;c<w-1;c+=s){const p=r*w+c;
+    if(s===1||(r>0&&c>0&&r+s<h-1&&c+s<w-1)){tri(p,p+s*w,p+s);tri(p+s,p+s*w,p+s*w+s);continue}
+    // border cell: fan from its centre over the perimeter, every sample along a chunk edge, corners only inside
+    const ring=[],side=(c1,r1,dc,dr,edge)=>{for(let k=0;k<s;k++)if(edge||k===0)ring.push((r1+dr*k)*w+c1+dc*k)};
+    side(c,r,1,0,r===0);side(c+s,r,0,1,c+s===w-1);side(c+s,r+s,-1,0,r+s===h-1);side(c,r+s,0,-1,c===0);
+    const m=(r+s/2)*w+c+s/2;for(let k=0;k<ring.length;k++)tri(m,ring[k],ring[(k+1)%ring.length])}}
+function terrainLod(){const px=cam.position.x,pz=cam.position.z;
+  for(const ch of chunks){const d=Math.hypot(ch.x-px,ch.z-pz),lv=Math.min(ch.lod.length-2,d>LOD_DIST[1]?2:d>LOD_DIST[0]?1:0);
+    if(lv!==ch.lv){ch.lv=lv;ch.geo.setDrawRange(ch.lod[lv],ch.lod[lv+1]-ch.lod[lv])}}}
 for(let cz=0;cz<NC;cz++)for(let cx=0;cx<NC;cx++){const c0=cx*CH,r0=cz*CH,w=Math.min(GN,c0+CH)-c0+1,h=Math.min(GN,r0+CH)-r0+1,n=w*h;
   const geo=new THREE.BufferGeometry(),pos=new Float32Array(n*3),uv=new Float32Array(n*2),idx=[];
   for(let r=0;r<h;r++)for(let c=0;c<w;c++){const k=r*w+c,x=(c0+c)*STEP-GS/2,z=(r0+r)*STEP-GS/2;pos[k*3]=x;pos[k*3+2]=z;if(MAPSPACE){uv[k*2]=(x+GS/2)/GS;uv[k*2+1]=1-(z+GS/2)/GS}else{uv[k*2]=x/8.6;uv[k*2+1]=-z/8.6}}
-  for(let r=0;r<h-1;r++)for(let c=0;c<w-1;c++){const p=r*w+c;idx.push(p,p+w,p+1,p+1,p+w,p+w+1)} // CCW seen from above
-  geo.setIndex(idx);geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('normal',new THREE.BufferAttribute(new Float32Array(n*3),3));
+  const lod=[0];for(const s of LOD_STEP){if(s>1&&((w-1)%s||(h-1)%s))break;lodIndex(idx,w,h,s);lod.push(idx.length)} // levels share one index buffer
+  geo.setIndex(idx);geo.setDrawRange(0,lod[1]);geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('normal',new THREE.BufferAttribute(new Float32Array(n*3),3));
   geo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(n*3),3));geo.setAttribute('uv',new THREE.BufferAttribute(uv,2));
-  const mesh=new THREE.Mesh(geo,groundM);mesh.receiveShadow=true;sc.add(mesh);chunks.push({geo,c0,r0,w,h})}
+  const mesh=new THREE.Mesh(geo,groundM);mesh.receiveShadow=true;sc.add(mesh);chunks.push({geo,c0,r0,w,h,lod,lv:0,x:(c0+(w-1)/2)*STEP-GS/2,z:(r0+(h-1)/2)*STEP-GS/2})}
 // Rebuild a chunk's vertices from the heightfield; pass a sample range (global c/r) to touch only that patch
 function rebuildChunk(ch,gc0=0,gc1=GN,gr0=0,gr1=GN){const P=ch.geo.attributes.position.array,N=ch.geo.attributes.normal.array,Cc=ch.geo.attributes.color.array;
   const ca=Math.max(0,gc0-ch.c0),cb=Math.min(ch.w-1,gc1-ch.c0),ra=Math.max(0,gr0-ch.r0),rb=Math.min(ch.h-1,gr1-ch.r0);

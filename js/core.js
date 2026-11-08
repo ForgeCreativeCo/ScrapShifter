@@ -47,3 +47,28 @@ const glowT=tex(64,64,(g,w,h)=>{const gr=g.createRadialGradient(32,32,0,32,32,32
 
 const cl=v=>Math.max(0,Math.min(1,v)),ss=v=>v*v*(3-2*v); // clamp01, smoothstep
 function rng(seed){return()=>{seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}} // seeded random (mulberry32), for deterministic layouts
+
+// Instances spread across the map, split into INST_TILE m tiles: one InstancedMesh per occupied tile with its own
+// bounding sphere, so the camera and the shadow camera skip whole tiles (a single map-wide InstancedMesh can't be
+// culled at all). Same setMatrixAt/setColorAt-by-global-index API as an InstancedMesh: fill every instance, then
+// build(). After build, writes go straight to the right tile and flag its upload, so callers' own
+// `instanceMatrix/instanceColor.needsUpdate=true` lines are harmless no-ops. Tile spheres come from the initial
+// matrices; later edits (hiding with a zero scale, sagging a wreck) only shrink instances, so they stay valid.
+const INST_TILE=64,_tiS=new THREE.Sphere(),_tiB=new THREE.Box3(),_tiB2=new THREE.Box3(),_tiM=new THREE.Matrix4();
+class TiledInst{
+  constructor(geo,mat,n,shadow=true){this.geo=geo;this.mat=mat;this.count=n;this.shadow=shadow;this.mats=new Float32Array(n*16);this.cols=null;
+    this.meshes=null;this.tile=new Int32Array(n);this.local=new Int32Array(n);this.instanceMatrix={};this.instanceColor={}}
+  setMatrixAt(i,m){if(!this.meshes){m.toArray(this.mats,i*16);return}const t=this.meshes[this.tile[i]];t.setMatrixAt(this.local[i],m);t.instanceMatrix.needsUpdate=true}
+  setColorAt(i,c){if(!this.meshes){(this.cols||(this.cols=new Float32Array(this.count*3)));c.toArray(this.cols,i*3);return}
+    const t=this.meshes[this.tile[i]];t.setColorAt(this.local[i],c);t.instanceColor.needsUpdate=true}
+  build(){const g0=this.geo;if(!g0.boundingSphere)g0.computeBoundingSphere();const groups=new Map();
+    for(let i=0;i<this.count;i++){const k=Math.floor(this.mats[i*16+12]/INST_TILE)+','+Math.floor(this.mats[i*16+14]/INST_TILE);let l=groups.get(k);if(!l)groups.set(k,l=[]);l.push(i)}
+    this.meshes=[];const col=new THREE.Color();
+    groups.forEach(list=>{const g=new THREE.BufferGeometry();g.index=g0.index;g.attributes=g0.attributes;g.groups=g0.groups; // shares the GPU buffers
+      const im=new THREE.InstancedMesh(g,this.mat,list.length);_tiB.makeEmpty();
+      list.forEach((i,j)=>{this.tile[i]=this.meshes.length;this.local[i]=j;_tiM.fromArray(this.mats,i*16);im.setMatrixAt(j,_tiM);
+        _tiS.copy(g0.boundingSphere).applyMatrix4(_tiM);_tiB.union(_tiS.getBoundingBox(_tiB2));if(this.cols)im.setColorAt(j,col.fromArray(this.cols,i*3))});
+      g.boundingSphere=_tiB.getBoundingSphere(new THREE.Sphere()); // world space; the tile mesh sits at the origin
+      im.frustumCulled=true;im.castShadow=this.shadow;im.receiveShadow=true;im.matrixAutoUpdate=false; // InstancedMesh turns culling off by default
+      sc.add(im);this.meshes.push(im)});
+    this.mats=this.cols=null;return this}}

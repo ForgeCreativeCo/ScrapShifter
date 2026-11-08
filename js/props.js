@@ -5,8 +5,8 @@
 
 let carInst=null; // parked car instances, made destructible in js/cars.js
 if(MAP.props){(()=>{const P=MAP.props,r=rng(MAP.seed*7+1),m4=new THREE.Matrix4(),q=new THREE.Quaternion(),UP=new THREE.Vector3(0,1,0),V=(x,y,z)=>new THREE.Vector3(x,y,z);
-  const inst=(geo,mat,list,fn,shadow=true)=>{if(!list.length)return null;const im=new THREE.InstancedMesh(geo,mat,list.length);im.frustumCulled=false;im.castShadow=shadow;im.receiveShadow=true;
-    list.forEach((it,i)=>{fn(it,i,im);im.setMatrixAt(i,m4)});im.instanceMatrix.needsUpdate=true;if(im.instanceColor)im.instanceColor.needsUpdate=true;sc.add(im);return im};
+  const inst=(geo,mat,list,fn,shadow=true)=>{if(!list.length)return null;const im=new TiledInst(geo,mat,list.length,shadow); // map tiles, culled per tile
+    list.forEach((it,i)=>{fn(it,i,im);im.setMatrixAt(i,m4)});return im.build()};
   const put=(x,y,z,rotY,sx,sy,sz)=>m4.compose(V(x,y,z),q.setFromAxisAngle(UP,rotY),V(sx,sy,sz));
   const okSpot=(x,z,m=2)=>Math.abs(x)<PLAY-m&&Math.abs(z)<PLAY-m&&!(x<-TP.EDGE&&Math.abs(z-TP.HWY_Z)<TP.ROAD/2+3)&&Math.hypot(x-MAP.start.x,z-MAP.start.z)>14&&!layoutNear(x,z);
 

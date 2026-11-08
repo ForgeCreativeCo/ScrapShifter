@@ -44,7 +44,7 @@ const cx=ax+Math.cos(yaw)*Math.cos(camEl)*camR,cz=az+Math.sin(yaw)*Math.cos(camE
   for(let k=1;k<=18;k++){const f=k/18;_camP.set(L(a.x,cx,f),L(a.y,cy,f),L(a.z,cz,f));if(piecesNear(_camP.x,_camP.z,.4).some(pc=>pieceHitShot(pc,_camP))){want=Math.max(.12,(k-1.6)/18);break}}
   camPull+=(want-camPull)*Math.min(1,rdt*(want<camPull?18:2.5));
   cam.position.set(L(a.x,cx,camPull)+ox,Math.max(gh(L(a.x,cx,camPull),L(a.z,cz,camPull))+.6,L(a.y,cy,camPull))+oy,L(a.z,cz,camPull))}cam.lookAt(tx+ox*.4,ty+oy*.4,tz);
-renderFrame(rdt);requestAnimationFrame(loop)}
+terrainLod();renderFrame(rdt);requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
 st.textContent=TXT[0]+' Right-drag to look, scroll to zoom.';
 

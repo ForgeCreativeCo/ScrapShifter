@@ -126,9 +126,8 @@ function resetBuildings(){buildings.forEach(B=>{B.collapsedFrom=B.floors;B.shp=B
 
 // ---------- Create all buildings for this map, then the instanced meshes and the piece grid
 (MAP.buildings||[]).forEach(addBuilding);
-Object.entries(instSpecs).forEach(([key,list])=>{const im=new THREE.InstancedMesh(new THREE.BoxGeometry(1,1,1),key==='roof'?roofM:facadeM[key],list.length);
-  im.frustumCulled=false;im.castShadow=im.receiveShadow=true; // instances span the map; the base sphere would cull them wrongly
-  list.forEach((p,i)=>{p.inst={mesh:im,i,m:panelMatrix(p)};im.setMatrixAt(i,p.inst.m);im.setColorAt(i,new THREE.Color(1,1,1))}); /* instance colour = fire scorch */im.instanceMatrix.needsUpdate=true;sc.add(im);bldMeshes.push(im)});
+Object.entries(instSpecs).forEach(([key,list])=>{const im=new TiledInst(new THREE.BoxGeometry(1,1,1),key==='roof'?roofM:facadeM[key],list.length); // map tiles, culled per tile
+  const white=new THREE.Color(1,1,1);list.forEach((p,i)=>{p.inst={mesh:im,i,m:panelMatrix(p)};im.setMatrixAt(i,p.inst.m);im.setColorAt(i,white)}); /* instance colour = fire scorch */im.build();bldMeshes.push(im)});
 buildPieceGrid();
 // Rooftop detail per building (parapet, AC units, sometimes a water tank or antenna), merged into one mesh and hidden
 // once the top floor comes down

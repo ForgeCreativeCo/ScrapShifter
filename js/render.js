@@ -1,7 +1,8 @@
-// Rendering: sky shader (gradient, sun disc + glow, drifting clouds), image-based lighting from that sky
-// (reflections on glass, paint and metal), sun shadow setup, and the post-processing chain (MSAA, bloom on
-// fire/explosions/lamps, colour grade + vignette, gamma). Graphics: High uses all of it; Low renders directly
-// with a smaller shadow map. Post-processing scripts come from the CDN; if they fail to load, High falls back to Low.
+// Rendering: sky shader (gradient, sun disc + glow, drifting clouds) baked into a cube map a face per frame, image-based
+// lighting from that sky (reflections on glass, paint and metal), sun shadow setup, and the post-processing chain (bloom
+// on fire/explosions/lamps, gamma, colour grade + vignette, FXAA). Graphics: High uses all of it; Medium the same at a
+// lower pixel ratio; Low renders directly with a smaller shadow area. Auto resolution adjusts the pixel ratio to frame
+// time. Post-processing scripts come from the CDN; if they fail to load, High/Medium fall back to Low.
 // Classic script sharing one global scope with the other js/ files; load order is set in index.html.
 
 const SKY=MAP.sky;
@@ -22,7 +23,25 @@ const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:
       #include <tonemapping_fragment>
       #include <encodings_fragment>
     }`});
-const skyDome=new THREE.Mesh(new THREE.SphereGeometry(1,48,24),skyMat);skyDome.frustumCulled=false;skyDome.renderOrder=-1;sc.add(skyDome);
+// The sky shader (two 5-octave fbm lookups per pixel) is too costly to run on every screen pixel each frame. It is
+// rendered raw (before tone mapping) into a half-float cube map instead, one face per frame, so the whole sky refreshes
+// every 6 frames (the clouds drift slowly). The dome on screen just samples the cube and tone-maps it.
+const SKY_RAW=skyMat.fragmentShader.replace('#include <tonemapping_fragment>','').replace('#include <encodings_fragment>','');
+const skyRawMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,toneMapped:false,uniforms:skyMat.uniforms,vertexShader:`varying vec3 vDir;void main(){vDir=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,fragmentShader:SKY_RAW});
+const skyRT=new THREE.WebGLCubeRenderTarget(512,{type:THREE.HalfFloatType,generateMipmaps:false,minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter});
+const skyScene=new THREE.Scene(),skyCubeCam=new THREE.CubeCamera(.05,10,skyRT);skyScene.add(new THREE.Mesh(new THREE.SphereGeometry(1,48,24),skyRawMat),skyCubeCam);
+let skyFace=0;
+function skyFaceTick(all){const prev=R.getRenderTarget(),xr=R.xr.enabled;R.xr.enabled=false;skyScene.updateMatrixWorld();
+  for(let k=0;k<(all?6:1);k++){R.setRenderTarget(skyRT,skyFace);R.render(skyScene,skyCubeCam.children[skyFace]);skyFace=(skyFace+1)%6}
+  R.setRenderTarget(prev);R.xr.enabled=xr}
+const skyDomeMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,uniforms:{cube:{value:skyRT.texture}},
+  vertexShader:skyMat.vertexShader,
+  fragmentShader:`uniform samplerCube cube;varying vec3 vDir;void main(){gl_FragColor=vec4(textureCube(cube,normalize(vDir)).rgb,1.);
+    #include <tonemapping_fragment>
+    #include <encodings_fragment>
+  }`});
+const skyDome=new THREE.Mesh(new THREE.SphereGeometry(1,48,24),skyDomeMat);skyDome.frustumCulled=false;skyDome.renderOrder=-1;sc.add(skyDome);
+skyFaceTick(true);
 
 // Image-based lighting: bake the sky into an environment map once; the sky now does most of the ambient light
 {const pm=new THREE.PMREMGenerator(R),es=new THREE.Scene();es.add(new THREE.Mesh(new THREE.SphereGeometry(1,48,24),skyMat));
@@ -34,7 +53,7 @@ function tuneEnv(root=sc){root.traverse(o=>{const ms=o.material?(Array.isArray(o
 // Graphics quality
 let GFX=(()=>{try{return localStorage.getItem('scrapGfx')||'high'}catch(e){return'high'}})();
 const SHADOW_EXT=MAP.size>200?60:32;
-function applyShadows(){const hi=GFX==='high',ext=hi?SHADOW_EXT:Math.min(SHADOW_EXT,30),ms=hi?4096:2048;
+function applyShadows(){const ext=GFX!=='low'?SHADOW_EXT:Math.min(SHADOW_EXT,30),ms=GFX==='high'?4096:2048;
   Object.assign(sun.shadow.camera,{left:-ext,right:ext,top:ext,bottom:-ext,near:1,far:200});sun.shadow.camera.updateProjectionMatrix();
   sun.shadow.bias=-.0004;sun.shadow.normalBias=.04;if(sun.shadow.mapSize.x!==ms){sun.shadow.mapSize.set(ms,ms);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null}}}
 applyShadows();
@@ -58,7 +77,18 @@ function setupPost(){if(composer||!THREE.EffectComposer||!THREE.UnrealBloomPass|
 function sizePost(){if(!composer)return;const w=cv.clientWidth||800,h=cv.clientHeight||500,pr=R.getPixelRatio();composer.setPixelRatio(pr);composer.setSize(w,h);
   if(fxaaPass)fxaaPass.material.uniforms.resolution.value.set(1/(w*pr),1/(h*pr))}
 window.addEventListener('resize',sizePost);
-function setGfx(v){GFX=v;try{localStorage.setItem('scrapGfx',v)}catch(e){}if(v==='high'&&!setupPost()&&!composer)GFX='low';applyShadows();const s=document.getElementById('gfxSel');if(s)s.value=GFX}
+// Graphics: High = full post chain, 4096 shadows; Medium = the same look at pixel ratio <= 1 with 2048 shadows;
+// Low = direct render, smaller shadow area. Auto resolution: when frames run slow (smoothed > 24 ms for 2 s) the
+// pixel ratio drops 0.25 toward the quality's floor; when they're fast (< 17.5 ms for 5 s) it climbs back to the ceiling.
+const DPR=Math.min(2,window.devicePixelRatio||1);
+const PR_CAP={high:[DPR,Math.min(1,DPR)],medium:[Math.min(1,DPR),Math.min(.75,DPR)],low:[DPR,Math.min(.75,DPR)]}; // [ceiling, floor]
+let prNow=R.getPixelRatio(),frameMs=16.7,prSlowT=0,prFastT=0;
+function prSet(v){if(Math.abs(v-prNow)<.01)return;prNow=v;R.setPixelRatio(v);sizePost();prSlowT=prFastT=0}
+function autoRes(dt){if(document.hidden||dt>=.05)return; // skip stalls and background tabs
+  frameMs+=(dt*1000-frameMs)*.05;const [hi,lo]=PR_CAP[GFX]||PR_CAP.low;
+  if(frameMs>24&&prNow>lo){prFastT=0;if((prSlowT+=dt)>2)prSet(Math.max(lo,prNow-.25))}
+  else if(frameMs<17.5&&prNow<hi){prSlowT=0;if((prFastT+=dt)>5)prSet(Math.min(hi,prNow+.25))}else prSlowT=prFastT=0}
+function setGfx(v){GFX=v;try{localStorage.setItem('scrapGfx',v)}catch(e){}if(v!=='low'&&!setupPost()&&!composer)GFX='low';applyShadows();prSet(PR_CAP[GFX][0]);const s=document.getElementById('gfxSel');if(s)s.value=GFX}
 setGfx(GFX);
-function renderFrame(dt){skyMat.uniforms.time.value+=dt;skyDome.position.copy(cam.position);
-  if(GFX==='high'&&composer)composer.render(dt);else R.render(sc,cam)}
+function renderFrame(dt){skyMat.uniforms.time.value+=dt;skyFaceTick(false);skyDome.position.copy(cam.position);
+  if(GFX!=='low'&&composer)composer.render(dt);else R.render(sc,cam);autoRes(dt)}
