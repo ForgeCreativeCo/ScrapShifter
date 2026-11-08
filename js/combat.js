@@ -26,11 +26,12 @@ function damagePlayer(d,from){if(pl.dead)return;d*=run?TRANSFORM_ARMOR:ARMOR[mod
     explode(new THREE.Vector3(car.x,car.y+.8,car.z),1.4);slowT=.35;
     let tt=0;addFx(null,14,(f,k,dt)=>{tt+=dt;if(tt>.12&&pl.dead){tt=0;const q=new THREE.Vector3(car.x+rnd(-.6,.6),car.y+1,car.z+rnd(-.6,.6));fireball(q,new THREE.Vector3(0,rnd(1,2),0),.35,.9*(1-k),rnd(.4,.7));smoke(q.clone().setY(q.y+.8),new THREE.Vector3(rnd(-.2,.2),rnd(1.5,2.5),rnd(-.2,.2)),0x221F1B,.7,3.2,rnd(4,6),.6)}});
     toast('Wrecked!',3)}}
-function damageEnemy(e,d){if(e.dead)return;e.hp-=d;e.flash=1;sparks(new THREE.Vector3(e.x,e.y+1,e.z),8);hitClank(e.g.position,.8);
+function damageEnemy(e,d){if(e.dead)return;if(e.armor)d*=e.armor();e.hp-=d; // rigs: per-mode armore.flash=1;sparks(new THREE.Vector3(e.x,e.y+1,e.z),8);hitClank(e.g.position,.8);
   if(e.hp<=0)killEnemy(e,true)}
 function killEnemy(e,credit){e.hp=0;e.dead=true;e.deadT=0;e.bar.style.display='none';if(credit){kills++;killsEl.textContent=kills}
-  e.g.traverse(o=>{if(o.isMesh)o.material=charM});const bike=e.type==='bike';
-  explode(new THREE.Vector3(e.x,e.y+(bike?.9:.8),e.z),bike?BIKE.pw:1.5);if(credit){toast(bike?'Rusher down':'Crawler destroyed');dropScrap(e.x,e.z,bike?5:10)}}
+  e.g.traverse(o=>{if(o.isMesh)o.material=charM});const bike=e.type==='bike',rig=e.type==='rig';
+  explode(new THREE.Vector3(e.x,e.y+(bike?.9:.8),e.z),bike?BIKE.pw:rig?2.2:1.5);if(rig)rigDie(e);
+  if(credit){toast(bike?'Rusher down':rig?'Rival rig destroyed!':'Crawler destroyed');dropScrap(e.x,e.z,bike?5:rig?40:10);wantedKill(e)}}
 function applyBlast(p,pw,heavy){const R=2.3*pw+1.2;if(heavy)structHits(p);
   if(!pl.dead){const d=Math.hypot(p.x-car.x,p.y-(car.y+1),p.z-car.z);if(d<R)damagePlayer(PL_DMG*pw*(1-d/R),p)}
   enemies.slice().forEach(e=>{if(e.dead)return;const d=Math.hypot(p.x-e.x,p.y-(e.y+.8),p.z-e.z);if(d<R)damageEnemy(e,EN_DMG*pw*(1-d/R))});
@@ -59,7 +60,7 @@ function makeEnemy(x,z){const g=new THREE.Group();g.rotation.order='YZX';sc.add(
   enemies.push(e);return e}
 function spawnPoint(){let x=0,z=0;for(let i=0;i<20;i++){const a=Math.random()*6.28;x=Math.cos(a)*MAP.spawn.ring;z=Math.sin(a)*MAP.spawn.ring;if(Math.hypot(x-car.x,z-car.z)>MAP.spawn.minDist&&!layoutNear(x,z)&&navReachable(x,z))break}return[x,z]}
 function spawnEnemy(){makeEnemy(...spawnPoint())}
-function removeEnemy(e){sc.remove(e.g);e.bar.remove();enemies.splice(enemies.indexOf(e),1)}
+function removeEnemy(e){sc.remove(e.g);e.bar.remove();enemies.splice(enemies.indexOf(e),1);if(e.mark){e.mark.el.remove();const i=marks.indexOf(e.mark);if(i>=0)marks.splice(i,1)}}
 function enemyFire(e){const p=new THREE.Vector3();e.muz.getWorldPosition(p);e.bp.getWorldQuaternion(_q);
   const v=new THREE.Vector3(1,0,0).applyQuaternion(_q).multiplyScalar(EN_SHELL.spd*rnd(.97,1.03));v.x+=rnd(-.35,.35);v.z+=rnd(-.35,.35);
   const sh=spawnShell(p,v,EN_SHELL.pw,e,.11,0xFF5533,.7);
@@ -72,6 +73,7 @@ function pushOut(o,cx,cz,m){const dx=o.x-cx,dz=o.z-cz,d=Math.hypot(dx,dz);if(d<m
 function enemyTick(e,dt){
   if(e.dead){e.deadT+=dt;if(e.deadT>14)e.g.position.y-=dt*.3;if(e.deadT>20)removeEnemy(e);return}
   if(e.type==='bike')return bikeTick(e,dt);
+  if(e.type==='rig')return rigTick(e,dt); // rival rigs (rivals.js)
   droneFlak(e,dt);gyroFlak(e,dt); // crawlers shoot at the spotter drone (drone.js) and the flying gyro (gyro.js)
   const tg=enemyTarget(e),dx=tg?tg.x-e.x:0,dz=tg?tg.z-e.z:0,d=tg?Math.hypot(dx,dz):1e9,engage=!!tg&&d<EN_RANGE,toP=Math.atan2(-dz,dx),pdx=car.x-e.x,pdz=car.z-e.z,pd=Math.hypot(pdx,pdz); // target: player or a convoy truck
   // knockback from bashes/rams, and a stun that stops it driving and firing

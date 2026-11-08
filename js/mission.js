@@ -20,7 +20,7 @@ const SAVE=(()=>{let s=null;try{s=JSON.parse(localStorage.getItem(SAVE_KEY))}cat
   return{scrap:s.scrap|0,runs:s.runs|0,up:Object.assign({armor:0,engine:0,loader:0,cannon:0,cooling:0},s.up||{})}})();
 function saveGame(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(SAVE))}catch(e){}}
 const RUN={n:SAVE.runs,scrap:0,nestsDown:0,trucksSaved:0,trucksLost:0,t:0};
-const MS={phase:'brief',overlay:true,needReset:false,result:null,reason:'',endT:0,rolling:false,extractT:0,blocker:null,blockT:0,spawnT:6,bikeT:12};
+const MS={sandbox:(()=>{try{return localStorage.getItem('scrapShifterGame')==='sandbox'}catch(e){return false}})(),phase:'brief',overlay:true,needReset:false,result:null,reason:'',endT:0,rolling:false,extractT:0,blocker:null,blockT:0,spawnT:6,bikeT:12};
 
 // ---------- Upgrades: numbers + visible parts on the rig
 const RELOAD_BASE=RELOAD.slice(),POWER_BASE=FIRE.map(f=>f[1]),rigExtra=[];
@@ -126,16 +126,16 @@ function nestDown(n){RUN.nestsDown++;RUN.scrap+=60;const left=nests.filter(x=>!x
   if(!left&&MS.phase==='nests'){if(route.length>1){MS.phase='convoy';MS.rolling=false;for(let i=0;i<(MISSION.convoy.trucks||3);i++)makeTruck(i);
     setTimeout(()=>{if(MS.phase==='convoy'&&!MS.rolling)toast('Evac convoy is waiting. Meet it at the green marker.',4)},3600)}else startExtract()}}
 function endRun(result,reason){if(MS.phase==='over')return;MS.phase='over';MS.result=result;MS.reason=reason;MS.endT=2.2;
-  if(result==='won')RUN.scrap+=50;const kept=result==='won'?RUN.scrap:Math.floor(RUN.scrap/2);RUN.kept=kept;SAVE.scrap+=kept;SAVE.runs++;saveGame();
-  toast(result==='won'?'Mission complete!':reason,4)}
+  if(result==='won')RUN.scrap+=50;const kept=result==='won'||result==='sandbox'?RUN.scrap:Math.floor(RUN.scrap/2); // sandbox banks everythingRUN.kept=kept;SAVE.scrap+=kept;SAVE.runs++;saveGame();
+  toast(result==='won'?'Mission complete!':result==='sandbox'?'Wrecked! Peak wanted '+STARS(WANT.peak):reason,4)}
 function resetMission(){clearNests();trucks.forEach(t=>sc.remove(t.g));trucks.length=0;pickups.forEach(p=>sc.remove(p.g));pickups.length=0;extractObjs.forEach(o=>sc.remove(o));extractObjs=[];clearMarks();
-  Object.assign(RUN,{n:SAVE.runs,scrap:0,nestsDown:0,trucksSaved:0,trucksLost:0,t:0});Object.assign(MS,{rolling:false,extractT:0,blocker:null,blockT:0,spawnT:6,bikeT:12,result:null});
-  pickNestBuildings(MISSION.nests||1,MAP.seed*7919+RUN.n*104729).forEach((b,i)=>{const n=makeNest(b,i);addMark('nest',()=>n.dead?null:nestCore(n).setY(n.y+n.stackH+2),()=>'Foundry'+(n.stage?' +'+n.stage:''),()=>n.hp/n.max)})}
+  Object.assign(RUN,{n:SAVE.runs,scrap:0,nestsDown:0,trucksSaved:0,trucksLost:0,t:0});Object.assign(MS,{rolling:false,extractT:0,blocker:null,blockT:0,spawnT:6,bikeT:12,result:null});resetWanted();
+  if(!MS.sandbox)pickNestBuildings(MISSION.nests||1,MAP.seed*7919+RUN.n*104729).forEach((b,i)=>{const n=makeNest(b,i);addMark('nest',()=>n.dead?null:nestCore(n).setY(n.y+n.stackH+2),()=>'Foundry'+(n.stage?' +'+n.stage:''),()=>n.hp/n.max)})}
 function missionTick(dt){
   if(MS.overlay)return;
   if(MS.phase==='over'){MS.endT-=dt;if(MS.endT<=0)showOverlay();return}
-  RUN.t+=dt;swarmTick(dt);convoyTick(dt);pickupsTick(dt);
-  if(pl.dead){MS.deadT=(MS.deadT||0)+dt;if(MS.deadT>2.5)endRun('lost','Your rig was wrecked.')}else MS.deadT=0;
+  RUN.t+=dt;swarmTick(dt);convoyTick(dt);pickupsTick(dt);if(MS.phase==='sandbox')wantedTick(dt);
+  if(pl.dead){MS.deadT=(MS.deadT||0)+dt;if(MS.deadT>2.5)endRun(MS.sandbox?'sandbox':'lost','Your rig was wrecked.')}else MS.deadT=0;
   // after the foundries fall, the swarm counter-attacks from the map edge (crawlers and bikes go for the convoy)
   if(MS.phase==='convoy'||MS.phase==='extract'){const busy=MS.phase==='convoy'&&MS.rolling;MS.spawnT-=dt;MS.bikeT-=dt;
     if(MS.spawnT<=0&&enemies.filter(e=>!e.dead&&e.type==='crawler').length<(busy?3:2)){spawnEnemy();MS.spawnT=busy?9:14}
@@ -147,6 +147,7 @@ function missionTick(dt){
 const objT=document.getElementById('objT'),objS=document.getElementById('objS'),scrapN=document.getElementById('scrapN'),objEl=document.getElementById('obj');
 function setText(el,t){if(el.textContent!==t)el.textContent=t}
 function objectiveHud(){let a='',b='';const total=nests.length;
+  if(MS.phase==='sandbox')[a,b]=wantedHud();
   if(MS.phase==='nests'){a=`Destroy the swarm foundries: ${RUN.nestsDown}/${total}`;const g=Math.max(0,...nests.filter(n=>!n.dead).map(n=>n.stage));
     b=g?`Rubble is feeding them (growth ${g}/5). Fire denies the material.`:'Follow the red beacons. Rubble near a foundry feeds it; burning denies it.'}
   else if(MS.phase==='convoy'){const alive=trucks.filter(t=>!t.dead&&!t.out).length;
@@ -158,22 +159,30 @@ function objectiveHud(){let a='',b='';const total=nests.length;
 // ---------- Overlay: briefing / debrief + garage
 const ovl=document.getElementById('ovl');
 function showOverlay(){MS.overlay=true;firing=false;for(const k in keys)keys[k]=false;ovl.classList.add('show');objEl.style.display='none';renderOverlay()}
-function renderOverlay(){const over=MS.result!=null,won=MS.result==='won';
-  document.getElementById('ovlT').textContent=over?(won?'Mission complete':'Run lost'):'Scrap Shifter';
-  document.getElementById('ovlSub').innerHTML=over?(won?'The town is clear and the convoy got out.':MS.reason+' You keep half the scrap from this run.')
+function renderOverlay(){const over=MS.result!=null,won=MS.result==='won',sb=MS.result==='sandbox';
+  document.querySelectorAll('#gmode button').forEach(b=>b.classList.toggle('on',(b.dataset.gm==='sandbox')===MS.sandbox));
+  document.getElementById('ovlT').textContent=over?(won?'Mission complete':sb?'Sandbox over':'Run lost'):MS.sandbox?'Sandbox':'Scrap Shifter';
+  document.getElementById('ovlSub').innerHTML=over?(won?'The town is clear and the convoy got out.':sb?'Your rig was wrecked. Everything you salvaged is banked.':MS.reason+' You keep half the scrap from this run.')
+    :MS.sandbox?'No objective: wreck the town. Every building, car and machine you destroy raises your <b>wanted level</b>. '
+     +'The swarm answers with crawlers and rushers at first; from <b>★★★</b> it sends <b style="color:#ff5a7a">rival rigs</b>, machines like yours that transform between all four modes. '
+     +'Lie low for 20 s and the heat drains away. Scrap you salvage is banked when your rig is wrecked.'
     :'The Scrap is a machine swarm that strips towns for parts and builds more of itself. Its <b>foundries</b> nest inside buildings: follow the <b style="color:#ff6a4a">red beacons</b>. '
      +'Rubble feeds them, so every building you bring down near a living foundry makes it grow and spawn faster. Burning denies the material. Shell them, breach them with the mech, or burn them out.'
      +(MISSION.convoy?' Then escort the evac convoy out along the highway and extract.':' Then extract.');
-  document.getElementById('ovlStats').innerHTML=over?`<div><b>${RUN.nestsDown}/${nests.length}</b>foundries</div>`+(MISSION.convoy?`<div><b>${RUN.trucksSaved}</b>trucks saved</div>`:'')+`<div><b>${kills}</b>kills</div><div><b>+${RUN.kept}</b>scrap banked</div>`:'';
+  const tm=Math.floor(RUN.t/60)+':'+String(Math.floor(RUN.t%60)).padStart(2,'0');
+  document.getElementById('ovlStats').innerHTML=over&&sb?`<div><b>${tm}</b>survived</div><div><b>${STARS(WANT.peak)}</b>peak wanted</div><div><b>${kills}</b>kills</div><div><b>${WANT.rigKills}</b>rival rigs</div><div><b>+${RUN.kept}</b>scrap banked</div>`
+    :over?`<div><b>${RUN.nestsDown}/${nests.length}</b>foundries</div>`+(MISSION.convoy?`<div><b>${RUN.trucksSaved}</b>trucks saved</div>`:'')+`<div><b>${kills}</b>kills</div><div><b>+${RUN.kept}</b>scrap banked</div>`:'';
   document.getElementById('bank').textContent=SAVE.scrap;
   document.getElementById('ups').innerHTML=UPGRADES.map(u=>{const lv=SAVE.up[u.id],cost=u.cost[lv];
     return`<div class="up"><div><b>${u.name}</b><small>${u.desc}</small></div><div class="pips">${[0,1,2,3,4].map(i=>`<i class="${i<lv?'on':''}"></i>`).join('')}</div>`
       +`<button data-up="${u.id}" ${cost==null||cost>SAVE.scrap?'disabled':''}>${cost==null?'Max':cost+' scrap'}</button></div>`}).join('');
   document.getElementById('deploy').innerHTML=(over?'Next run':'Deploy')+'<kbd>Enter</kbd>'}
+document.getElementById('gmode').addEventListener('click',e=>{const m=e.target.closest('button')?.dataset.gm;if(!m)return;const sb=m==='sandbox';if(sb===MS.sandbox)return;
+  MS.sandbox=sb;MS.needReset=true;try{localStorage.setItem('scrapShifterGame',m)}catch(err){}MS.result=null;renderOverlay()}); // mission / sandbox picker (applies on deploy)
 document.getElementById('ups').addEventListener('click',e=>{const id=e.target.dataset?.up;if(!id)return;const u=UPGRADES.find(x=>x.id===id),lv=SAVE.up[id],cost=u.cost[lv];
   if(cost==null||cost>SAVE.scrap)return;SAVE.scrap-=cost;SAVE.up[id]++;saveGame();applyUpgrades();if(!MS.needReset)pl.hp=PL_MAX;renderOverlay();
   if(audio()){const t=AC.currentTime;nz(t,.25,3200,600,.4,'bandpass');th(t+.1,220,90,.2,.4)}});
-function deploy(){if(!MS.overlay)return;ovl.classList.remove('show');objEl.style.display='';if(MS.needReset)resetField();MS.needReset=true;MS.overlay=false;MS.phase='nests';
-  toast(`Destroy ${nests.length} foundr${nests.length>1?'ies':'y'}. Follow the red beacons.`,4)}
+function deploy(){if(!MS.overlay)return;ovl.classList.remove('show');objEl.style.display='';if(MS.needReset)resetField();MS.needReset=true;MS.overlay=false;MS.phase=MS.sandbox?'sandbox':'nests';
+  toast(MS.sandbox?'Sandbox: wreck the town. Watch your wanted level.':`Destroy ${nests.length} foundr${nests.length>1?'ies':'y'}. Follow the red beacons.`,4)}
 document.getElementById('deploy').onclick=deploy;
 function missionInit(){applyUpgrades();pl.hp=PL_MAX;resetMission();showOverlay()}

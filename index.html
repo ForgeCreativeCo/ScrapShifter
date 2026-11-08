@@ -55,7 +55,9 @@
   .mk span { display:block; margin-top:3px; padding:1px 6px; background:rgba(0,0,0,.5); border-radius:3px; color:#f2ede2; }
   .mk b { display:block; width:44px; height:4px; margin:3px auto 0; background:rgba(0,0,0,.55); border-radius:2px; overflow:hidden; }
   .mk u { display:block; height:100%; background:currentColor; }
-  .mk.nest { color:#ff5a3a; } .mk.truck { color:#6fe08a; } .mk.ext { color:#22e6ff; } .mk.warn { color:#ffc93a; }
+  .mk.nest { color:#ff5a3a; } .mk.truck { color:#6fe08a; } .mk.ext { color:#22e6ff; } .mk.warn { color:#ffc93a; } .mk.rival { color:#ff5a7a; }
+  #gmode { display:flex; gap:6px; margin-bottom:12px; } #gmode button { flex:1; padding:6px 10px; font-size:13px; } #gmode button.on { border-color:var(--accent); color:var(--accent); }
+  #obj.flash { animation:objFlash .6s ease-out 3; } @keyframes objFlash { 0% { border-left-color:#ff4a3a; background:rgba(120,30,20,.85); } 100% { background:rgba(29,27,24,.82); } }
   /* drone view (js/drone.js): scanlines, vignette, static near max range; laser readout and rig tag */
   #dview { position:fixed; inset:0; display:none; pointer-events:none; z-index:1; background:repeating-linear-gradient(0deg, rgba(0,0,0,.07) 0 1px, transparent 1px 3px); box-shadow:inset 0 0 140px rgba(0,0,0,.5); }
   #dvStatic { position:absolute; inset:0; opacity:0; background-size:192px 192px; mix-blend-mode:screen; image-rendering:pixelated; }
@@ -112,7 +114,7 @@
 <div id="marks"></div>
 <div id="dview"><div id="dvStatic"></div><div class="dvTop"><b>SPOTTER</b> <span id="dvInfo"></span></div><div id="dvWarn"></div></div>
 <div id="ltag"></div><div id="rigTag"></div>
-<div id="ovl"><div class="card"><h1 id="ovlT">Scrap Shifter</h1><p id="ovlSub"></p><div id="ovlStats"></div>
+<div id="ovl"><div class="card"><div id="gmode"><button data-gm="mission">Mission</button><button data-gm="sandbox">Sandbox</button></div><h1 id="ovlT">Scrap Shifter</h1><p id="ovlSub"></p><div id="ovlStats"></div>
   <h3>Garage <span>Banked scrap: <b id="bank">0</b></span></h3><div id="ups"></div><button id="deploy">Deploy<kbd>Enter</kbd></button></div></div>
 <div id="toast"></div><div id="hurt"></div><div id="ebars"></div>
 <canvas id="c"></canvas>
@@ -156,6 +158,8 @@ window.addEventListener('error',e=>{const s=document.getElementById('st');if(s)s
 <script src="js/combat.js"></script>
 <script src="js/swarm.js"></script>
 <script src="js/mission.js"></script>
+<script src="js/wanted.js"></script>
+<script src="js/rivals.js"></script>
 <script src="js/main.js"></script>
 <script>
 // A missing js/ file fails silently (no error event), so check that the last one ran.
