@@ -16,3 +16,4 @@ Recorded effects, renamed from the downloaded files. After adding or replacing o
 | mech-step.mp3 | freesound_community-mech_step_001-87175 | mech footfalls |
 | drone.mp3 | 11325622-drone-fx-240233 | spotter drone hover loop (4–7.1 s), placed at the drone |
 | minigun.mp3 | u_w4utmqapnm-mini-gun-154177 | artillery defence turrets: steady fire looped (0.45–2.6 s), wind-down tail (from 2.62 s) when they stop |
+| bomb-drop.mp3 | freesound_community-bomb-dropping-101151 | gyro bomb whistle: the last fall-time seconds before its peak at 4.8 s, so it peaks on impact |

@@ -43,7 +43,9 @@ function gyroAlt(dt,t){const g=gh(car.x,car.z),down=gyDown();
 function dropBomb(){if(!gyroAir()||GY.bombs<=0)return false;GY.bombs--;GY.refT=0;
   const fx=Math.cos(car.h),fz=-Math.sin(car.h),p=new THREE.Vector3(car.x,car.y+.2,car.z),v=new THREE.Vector3(fx*car.v*.9,-2,fz*car.v*.9);
   const sh=spawnShell(p,v,FIRE[3][1],'player',.18,0xFF8030,.6);sh.heavy=true;
-  if(audio()){const t=AC.currentTime;nz(t,.15,2600,600,.3,'bandpass');const ft=Math.sqrt(2*Math.max(1,car.y-gh(car.x,car.z))/9.8);th(t+.1,1500,520,ft,.05)} // release clunk + falling whistle
+  if(audio()){const t=AC.currentTime,h=Math.max(1,car.y-gh(car.x,car.z)),ft=(-2+Math.sqrt(4+19.6*h))/9.8;nz(t,.15,2600,600,.3,'bandpass'); // release clunk
+    // falling whistle (sfx/bomb-drop.mp3): play the last ft seconds before its peak at 4.8 s, so it peaks as the bomb lands
+    const s=spot(p,.03);if(!sfx('bomb-drop',{off:Math.max(0,4.8-ft),dur:Math.min(4.8,ft),fade:.06,vol:.9*s.a,pan:s.pan}))th(t+.1,1500,520,ft,.05)}
   return true}
 const bombStart=new THREE.Vector3(),bombVel=new THREE.Vector3();
 function bombLaunch(){bombStart.set(car.x,car.y+.2,car.z);bombVel.set(Math.cos(car.h)*car.v*.9,-2,-Math.sin(car.h)*car.v*.9)}
