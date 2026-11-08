@@ -6,7 +6,7 @@
 // with a shield bash), and at wanted 4+ occasionally a gyro bombing run. Transforming leaves it exposed (1.5x damage).
 // Classic script sharing one global scope with the other js/ files; load order is set in index.html.
 
-const RIG={hp:300,armor:[1.25,.7,.85,1.4],tArmor:1.5,minMode:5,
+const RIG={hp:300*FOE_HP,armor:[1.25,.7,.85,1.4],tArmor:1.5,minMode:5,
   gun:[{spd:30,pw:.7,reload:1.6,range:70,spread:1.6},{spd:37,pw:1.8,reload:4.5,range:135},{spd:34,pw:.35,reload:.24,range:45,spread:1.8,burst:3},{pw:1.8}],
   band:{far:125,art:60,mech:20},spd:[13,0,4.2,12],turn:[2.2,0,1.8,1.7],mechRun:6.5,gyroAlt:14,bashCd:4.5,bashDmg:22,bashR:4.2,
   hh:[2.2,2.6,5.2,1.9],barY:[3,3.4,6.2,2.8]};
@@ -123,7 +123,7 @@ function rigTick(e,dt){
           if(M===2){e.burst++;e.reload=e.burst>=G.burst?(e.burst=0,rnd(2.5,3.2)):G.reload}else e.reload=G.reload*rnd(.9,1.2)}}}
     // mech shield bash
     if(M===2&&d<RIG.bashR&&e.bashT<=0){e.bashT=RIG.bashCd;const ux=dx/Math.max(d,.01),uz=dz/Math.max(d,.01);
-      if(tg===PLT){damagePlayer(RIG.bashDmg,_rv3.set(e.x,e.y+2,e.z));car.x+=ux*2.4;car.z+=uz*2.4;car.v*=.3;trauma=Math.min(1,trauma+.45)}else if(tg.max)damageTruck(tg,RIG.bashDmg*2);
+      if(tg===PLT){damagePlayer(RIG.bashDmg*FOE_DMG,_rv3.set(e.x,e.y+2,e.z));car.x+=ux*2.4;car.z+=uz*2.4;car.v*=.3;trauma=Math.min(1,trauma+.45)}else if(tg.max)damageTruck(tg,RIG.bashDmg*2*FOE_DMG);
       sparks(_rv3.set(e.x+ux*2,e.y+2.4,e.z+uz*2),16);if(audio()){const a=spot(_rv3,.04);th(a.t,95,28,.45,.9*a.a);nz(a.t,.5,1800,90,.7*a.a)}}}
   // lamp: brighter when hit or about to fire
   e.flash=Math.max(0,e.flash-dt*4);e.lampM.emissiveIntensity=e.flash>0?4:1+1.5*Math.max(0,1-e.reload);e.lampM.emissive.setHex(e.flash>0?0xffffff:0xff2a10)}

@@ -138,5 +138,5 @@ function droneFlak(e,dt){if(!droneUp()||e.stun>0){e.flakT=Math.max(e.flakT||0,1)
   for(let i=0;i<3;i++){const hit=Math.random()<pHit,end=DR.p.clone();if(!hit)end.add(new THREE.Vector3(rnd(-1,1),rnd(-.5,1),rnd(-1,1)).normalize().multiplyScalar(rnd(2,4))).addScaledVector(_ld.subVectors(end,o).normalize(),6);
     const g=new THREE.BufferGeometry().setFromPoints([o.clone(),end]),ln=new THREE.Line(g,tracerM);ln.frustumCulled=false;
     addFx(ln,.09,(f,k)=>{if(k>.9)g.dispose()},i*.11);
-    if(hit)addFx(null,.02,f=>{if(!f.hit){f.hit=1;hurtDrone(DRONE.flakDmg)}},i*.11+d/400)}
+    if(hit)addFx(null,.02,f=>{if(!f.hit){f.hit=1;hurtDrone(DRONE.flakDmg*FOE_DMG)}},i*.11+d/400)}
   if(audio()){const s=spot(o,.04);if(!sfx('gun-shot',{t:s.t,off:SFX_CUT.gun[0][0],dur:.4,fade:.2,vol:.45*s.a,rate:1.7,pan:s.pan,lp:s.lp}))nz(s.t,.15,6000,1500,.3*s.a,'bandpass')}}

@@ -55,7 +55,7 @@ function truckPlace(t,k){const p=routeAt(t.s);t.h=p.h;t.x=p.x+Math.sin(p.h)*t.la
   t.pitch+=(Math.atan2(hf-hb,5.2)-t.pitch)*k;t.y+=((hf+hb)/2-t.y)*k;t.g.position.set(t.x,t.y,t.z);t.g.rotation.set(0,t.h,t.pitch)}
 function damageTruck(t,d){if(t.dead||t.out||d<=0)return;t.hp-=d;t.flash=1;if(t.hp>0)return;
   t.hp=0;t.dead=true;RUN.trucksLost++;t.g.traverse(o=>{if(o.isMesh)o.material=charM});explode(new THREE.Vector3(t.x,t.y+1.5,t.z),1.6);toast('Convoy truck destroyed!',3)}
-function truckBlast(p,pw){const R=2.3*pw+1.2;trucks.forEach(t=>{if(t.dead||t.out)return;const d=Math.max(0,Math.hypot(p.x-t.x,p.y-(t.y+1.5),p.z-t.z)-1.6);if(d<R)damageTruck(t,EN_DMG*1.15*pw*(1-d/R))})}
+function truckBlast(p,pw){const R=2.3*pw+1.2;trucks.forEach(t=>{if(t.dead||t.out)return;const d=Math.max(0,Math.hypot(p.x-t.x,p.y-(t.y+1.5),p.z-t.z)-1.6);if(d<R)damageTruck(t,EN_DMG*1.15*pw*(1-d/R)*foeK())})}
 function truckShotHit(sp){for(const t of trucks){if(t.out)continue;const dx=sp.x-t.x,dz=sp.z-t.z,lx=dx*Math.cos(t.h)-dz*Math.sin(t.h),lz=dx*Math.sin(t.h)+dz*Math.cos(t.h);
   if(Math.abs(lx)<3.3&&Math.abs(lz)<1.25&&sp.y>t.y&&sp.y<t.y+3.4)return true}return false}
 // What's in the road ahead of a truck: an intact blocking piece (barrier, wall) or a living enemy

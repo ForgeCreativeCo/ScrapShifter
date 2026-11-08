@@ -3,7 +3,9 @@
 
 // ---------- Combat: health, blast damage, enemy crawlers ----------
 // Blast damage falls off linearly to 0 at 2.3*power + 1.2 m. The player takes extra damage mid-transform.
-const PL_H=[2.2,2.6,5.2,1.9],ARMOR=[1.25,.7,.85,1.4],TRANSFORM_ARMOR=1.5,PL_DMG=45,EN_DMG=60,EN_HP=60,ENEMY_MAX=2;
+const PL_H=[2.2,2.6,5.2,1.9],ARMOR=[1.25,.7,.85,1.4],TRANSFORM_ARMOR=1.5,PL_DMG=45,EN_DMG=60,ENEMY_MAX=2;
+// Enemy strength: every enemy's health and the damage enemies deal (shells, bike charges, flak, bash) are scaled by these
+const FOE_HP=.25,FOE_DMG=.25,EN_HP=Math.round(60*FOE_HP);let foeBlast=false; // foeBlast: an enemy's own explosion (bike charge, wreck) is being applied
 const EN_SHELL={spd:22,pw:.85},EN_RANGE=48,EN_PREF=[14,26]; // shell, engage range, preferred band
 const pl={hp:100,dead:false,lastHit:-99,slump:0};let kills=0,PL_MAX=100; // PL_MAX grows with armor upgrades (js/mission.js)
 const enemies=[];let spawnT=4,bikeT=20; // first crawler rolls in after a few seconds, the next 8s later
@@ -26,14 +28,16 @@ function damagePlayer(d,from){if(pl.dead)return;d*=run?TRANSFORM_ARMOR:ARMOR[mod
     explode(new THREE.Vector3(car.x,car.y+.8,car.z),1.4);slowT=.35;
     let tt=0;addFx(null,14,(f,k,dt)=>{tt+=dt;if(tt>.12&&pl.dead){tt=0;const q=new THREE.Vector3(car.x+rnd(-.6,.6),car.y+1,car.z+rnd(-.6,.6));fireball(q,new THREE.Vector3(0,rnd(1,2),0),.35,.9*(1-k),rnd(.4,.7));smoke(q.clone().setY(q.y+.8),new THREE.Vector3(rnd(-.2,.2),rnd(1.5,2.5),rnd(-.2,.2)),0x221F1B,.7,3.2,rnd(4,6),.6)}});
     toast('Wrecked!',3)}}
-function damageEnemy(e,d){if(e.dead)return;if(e.armor)d*=e.armor();e.hp-=d; // rigs: per-mode armore.flash=1;sparks(new THREE.Vector3(e.x,e.y+1,e.z),8);hitClank(e.g.position,.8);
+function damageEnemy(e,d){if(e.dead)return;if(e.armor)d*=e.armor(); // rigs: per-mode armor
+  e.hp-=d;e.flash=1;sparks(new THREE.Vector3(e.x,e.y+1,e.z),8);hitClank(e.g.position,.8);
   if(e.hp<=0)killEnemy(e,true)}
 function killEnemy(e,credit){e.hp=0;e.dead=true;e.deadT=0;e.bar.style.display='none';if(credit){kills++;killsEl.textContent=kills}
   e.g.traverse(o=>{if(o.isMesh)o.material=charM});const bike=e.type==='bike',rig=e.type==='rig';
-  explode(new THREE.Vector3(e.x,e.y+(bike?.9:.8),e.z),bike?BIKE.pw:rig?2.2:1.5);if(rig)rigDie(e);
+  foeBlast=true;explode(new THREE.Vector3(e.x,e.y+(bike?.9:.8),e.z),bike?BIKE.pw:rig?2.2:1.5);foeBlast=false;if(rig)rigDie(e);
   if(credit){toast(bike?'Rusher down':rig?'Rival rig destroyed!':'Crawler destroyed');dropScrap(e.x,e.z,bike?5:rig?40:10);wantedKill(e)}}
+function foeK(){return dmgBy==='player'&&!foeBlast?1:FOE_DMG} // enemy blasts hurt the player and trucks less
 function applyBlast(p,pw,heavy){const R=2.3*pw+1.2;if(heavy)structHits(p);
-  if(!pl.dead){const d=Math.hypot(p.x-car.x,p.y-(car.y+1),p.z-car.z);if(d<R)damagePlayer(PL_DMG*pw*(1-d/R),p)}
+  if(!pl.dead){const d=Math.hypot(p.x-car.x,p.y-(car.y+1),p.z-car.z);if(d<R)damagePlayer(PL_DMG*pw*(1-d/R)*foeK(),p)}
   enemies.slice().forEach(e=>{if(e.dead)return;const d=Math.hypot(p.x-e.x,p.y-(e.y+.8),p.z-e.z);if(d<R)damageEnemy(e,EN_DMG*pw*(1-d/R))});
   piecesNear(p.x,p.z,R).forEach(pc=>{const d=pieceDist(pc,p);if(d<R)damagePiece(pc,STRUCT_DMG*pw*(1-d/R),p)});
   nestBlast(p,pw);truckBlast(p,pw)} // swarm foundries (swarm.js), convoy trucks (mission.js)
@@ -121,7 +125,7 @@ function enemyTick(e,dt){
   e.lampM.emissive.setHex(e.flash>0?0xffffff:0xff2a10)}
 // --- Scrap-bike rusher: fast, fragile, carries a drum charge. Weaves in, detonates within BIKE.fuse of the player.
 // Its beacon blinks (and beeps) faster as it closes. Shooting it sets off the charge too, which can take nearby crawlers with it.
-const BIKE={hp:30,spd:11,turn:2.6,fuse:2.6,pw:1.6};
+const BIKE={hp:30*FOE_HP,spd:11,turn:2.6,fuse:2.6,pw:1.6};
 function makeBike(x,z){const g=new THREE.Group();g.rotation.order='YZX';sc.add(g);
   mk(B(1.5,.22,.3),hostile,0,.62,0,g);mk(B(.55,.35,.42),rusty,.15,.85,0,g);mk(C(.06,.75,6),steel,.62,.95,0,g).rotation.z=-.5;mk(B(.08,.08,.75),steel,.8,1.27,0,g);
   const wheels=[.75,-.65].map(wx=>{const w=mk(C(.36,.16,12),tireM,wx,.36,0,g);w.rotation.x=PI/2;return w});
