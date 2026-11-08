@@ -31,7 +31,7 @@ const _sndV=new THREE.Vector3(),_sndR=new THREE.Vector3(),_sndP=new THREE.Vector
 function spot(p,fall){const d=cam.position.distanceTo(p);_sndV.subVectors(p,cam.position).normalize();_sndR.setFromMatrixColumn(cam.matrixWorld,0);
   return{d,t:AC.currentTime+d/343,a:1/(1+d*fall),pan:d<3?0:_sndV.dot(_sndR)*.7,lp:Math.max(900,20000/(1+d*.035))}}
 // Looping samples (turret motor, crawler treads): one source each, faded by gain.
-const sfxLoops={},LOOP_RANGE={'turret-rotate':[.05,1.12],'tank-moving':[.3,9.95],drone:[4,7.1],minigun:[.45,2.6]};
+const sfxLoops={},LOOP_RANGE={'turret-rotate':[.05,1.12],'tank-moving':[.3,9.95],drone:[4,7.1],minigun:[.45,2.6],siren:[.8,6.35]};
 function loopSnd(n,vol,rate,pan){if(!AC||!SFX[n])return;let L=sfxLoops[n];
   if(!L){if(vol<.003)return;const s=AC.createBufferSource();s.buffer=SFX[n];s.loop=true;[s.loopStart,s.loopEnd]=LOOP_RANGE[n]||[0,SFX[n].duration];
     const g=AC.createGain();g.gain.value=0;let node=s;let p=null;if(AC.createStereoPanner){p=AC.createStereoPanner();s.connect(p);node=p}

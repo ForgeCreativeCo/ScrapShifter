@@ -115,6 +115,7 @@ function heatTick(dt){const mech=mode===2&&!run,running=mech&&runK>.3,flying=mod
   if(!HEAT.over&&HEAT.v>=100){HEAT.over=true;toast(mode===3?'Overheated! Landing to vent…':'Overheated! Venting…',2);
     if(audio()){const t=AC.currentTime;nz(t,1.6,7000,2500,.35,'highpass');th(t,900,300,.5,.1)}}
   if(HEAT.over&&HEAT.v<=35)HEAT.over=false;
+  loopSnd('siren',HEAT.over&&(mode===2||mode===3)&&!MS.overlay?.45:0,1); // overheat alarm (sfx/siren.mp3) until it has cooled
   if(HEAT.over&&(mode===2||mode===3)){HEAT.ventT+=dt;if(HEAT.ventT>.07){HEAT.ventT=0;[1,-1].forEach(s=>{const q=new THREE.Vector3(-.8,4.1,.5*s).applyMatrix4(root.matrixWorld);
     smoke(q,new THREE.Vector3(-Math.cos(car.h)*1.5+rnd(-.3,.3),rnd(1.5,2.6),Math.sin(car.h)*1.5+rnd(-.3,.3)),0xE8E4DC,.25,rnd(1.2,2),rnd(.8,1.3),.45)})}}
   heatPill.style.display=mode===2||mode===3?'flex':'none';heatFill.style.width=HEAT.v+'%';
