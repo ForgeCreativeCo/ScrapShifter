@@ -59,7 +59,7 @@ function gyroTick(dt){const on=mode===3&&(!run||T>.45),g=gh(car.x,car.z),air=car
   // rotor wash: dust ring under the rig when low
   if(on&&GY.spinK>.5&&car.y-g<10&&Math.random()<dt*14){const a=Math.random()*6.28,r=rnd(1.5,3);smoke(new THREE.Vector3(car.x+Math.cos(a)*r,g+.2,car.z+Math.sin(a)*r),new THREE.Vector3(Math.cos(a)*rnd(4,7),rnd(.2,.6),Math.sin(a)*rnd(4,7)),0x8A7A60,.4,rnd(1.4,2.2),rnd(.8,1.3),.35*(1-(car.y-g)/10))}
   if(AC&&SFX.drone&&mode===3){const s=spot(root.position,.03);loopSnd('drone',soundOn?Math.min(1.2,1.4*s.a)*GY.spinK:0,.55+.12*GY.spinK+Math.min(.12,Math.abs(car.v)*.008),s.pan)}
-  if(mode===3&&!run){const st2=pl.dead?'':GY.land!=null?'Gyro · landing to transform…':HEAT.over?'Gyro · overheated: landing to vent':
+  if(mode===3&&!run){const st2=pl.dead?'':GY.land!=null?'Gyro · landing to transform…':HEAT.over?(air?'Gyro · overheated: landing to vent':'Gyro · venting heat · defence turrets up'):
     'Gyro · bombs '+GY.bombs+'/'+GYRO.bombs+' · alt '+Math.round(car.y-g)+' m · WASD fly, scroll altitude, click to drop (hold for a stick)';
     if(st2&&st2!==gyLastSt)st.textContent=gyLastSt=st2}else gyLastSt=''}
 function resetGyro(){GY.bombs=GYRO.bombs;GY.refT=0;GY.land=null;GY.alt=GYRO.alt0}
