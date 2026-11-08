@@ -18,3 +18,11 @@ Recorded effects, renamed from the downloaded files. After adding or replacing o
 | minigun.mp3 | u_w4utmqapnm-mini-gun-154177 | artillery defence turrets: steady fire looped (0.45–2.6 s), wind-down tail (from 2.62 s) when they stop |
 | bomb-drop.mp3 | freesound_community-bomb-dropping-101151 | gyro bomb whistle: the last fall-time seconds before its peak at 4.8 s, so it peaks on impact |
 | siren.mp3 | freesound_community-siren-alert-96052 | overheat alarm for mech and gyro, looped (0.8–6.35 s) until the heat drops to 35 |
+
+## Music and ambience (sfx/music, packed into js/musicdata.js, loaded after start by maps with `audio`)
+
+| File | Original download | Used for |
+|---|---|---|
+| city-ambience.mp3 | km007-city-ambience-9265 | town background ambience, looped |
+| music-total-war.mp3 | audioatlant-total-war-epic-action-cinematic-trailer-short-1-513667 | town music, alternates with revolution, 25–45 s gap between tracks |
+| music-revolution.mp3 | audioatlant-revolution-epic-action-cinematic-trailer-short-1-494839 | town music |

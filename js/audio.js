@@ -13,9 +13,28 @@ function th(t,f0,f1,dur,vol){const o=AC.createOscillator();o.frequency.setValueA
 const SFX={},SFX_CUT={ // slices of the multi-shot recordings: [offset, duration] in seconds
   gun:[[.13,.85],[1.39,.8],[2.23,.85],[3.49,.8]],tank:[[.04,3.4],[3.52,4.9],[8.62,2.35]]};
 let sfxLoading=false,sfxVoices=0;
-function sfxLoad(){if(sfxLoading||typeof SFX_DATA==='undefined')return;sfxLoading=true;
-  Object.entries(SFX_DATA).forEach(([n,b64])=>{const bin=atob(b64),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+function sfxLoad(){if(sfxLoading||typeof SFX_DATA==='undefined')return;sfxLoading=true;sfxDecode(SFX_DATA);if(typeof MUSIC_DATA!=='undefined')sfxDecode(MUSIC_DATA)}
+function sfxDecode(data){
+  Object.entries(data).forEach(([n,b64])=>{const bin=atob(b64),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
     AC.decodeAudioData(u.buffer,b=>{SFX[n]=b},()=>console.warn('sfx: could not decode '+n))})}
+
+// ---------- Music and ambience (per map: MAP.audio) ----------
+// sfx/music/*.mp3 are packed into js/musicdata.js, which is only fetched (as a script, so file:// works) for maps that use it,
+// after the page has started. Ambience loops quietly; music tracks alternate with a quiet gap between them.
+// Both fade out while the briefing/garage is open; music has its own toggle (N), remembered in localStorage.
+let musicOn=true;try{musicOn=localStorage.getItem('scrapShifterMusic')!=='off'}catch(e){}
+const MUS={amb:null,ambG:null,musG:null,src:null,gap:6,idx:Math.floor(Math.random()*2)};
+function musicLoad(){if(!MAP.audio||typeof MUSIC_DATA!=='undefined')return;const s=document.createElement('script');s.src='js/musicdata.js';
+  s.onload=()=>{if(AC&&sfxLoading)sfxDecode(MUSIC_DATA)};s.onerror=()=>console.warn('music: js/musicdata.js did not load');document.body.appendChild(s)}
+function musicTick(rdt){const A=MAP.audio;if(!AC||!A)return;const t=AC.currentTime,live=soundOn&&!MS.overlay;
+  if(!MUS.ambG){MUS.ambG=AC.createGain();MUS.ambG.gain.value=0;MUS.ambG.connect(master);MUS.musG=AC.createGain();MUS.musG.gain.value=0;MUS.musG.connect(master)}
+  MUS.ambG.gain.setTargetAtTime(live?A.ambVol:0,t,.6);MUS.musG.gain.setTargetAtTime(live&&musicOn?A.musVol:0,t,.6);
+  if(!MUS.amb&&SFX[A.ambience]){const s=AC.createBufferSource();s.buffer=SFX[A.ambience];s.loop=true;s.connect(MUS.ambG);s.start();MUS.amb=s}
+  if(!MUS.src&&live&&musicOn){const n=A.music[MUS.idx%A.music.length];if(SFX[n]){MUS.gap-=rdt;if(MUS.gap<=0){const s=AC.createBufferSource();s.buffer=SFX[n];s.connect(MUS.musG);s.start();
+    s.onended=()=>{if(MUS.src===s){MUS.src=null;MUS.gap=rnd(25,45)}};MUS.src=s;MUS.idx++}}}}
+function toggleMusic(){musicOn=!musicOn;try{localStorage.setItem('scrapShifterMusic',musicOn?'on':'off')}catch(e){}
+  const b=document.getElementById('mus');if(b)b.querySelector('span').textContent=musicOn?'Music on':'Music off';
+  if(!musicOn&&MUS.src){const s=MUS.src;MUS.src=null;MUS.gap=4;try{s.stop(AC.currentTime+1)}catch(e){}}} // let the fade finish, then stop
 // Play a sample. o: t start time, vol, rate, off/dur (slice, in buffer seconds), fade (tail seconds), pan, lp (lowpass Hz).
 // Returns false when the sample isn't ready (callers then play their synth fallback).
 function sfx(n,o={}){const b=SFX[n];if(!b||!AC)return false;if(sfxVoices>40)return true; // voice cap: drop, don't fall back

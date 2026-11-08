@@ -19,6 +19,7 @@ const MAPS={
     spawn:{ring:46,minDist:32},
     mission:{nests:1,extract:{x:0,z:0,r:6}}}, // one foundry in the test building, then extract at the start
   town:{name:'Town',size:HALF_T*2,seed:11,fog:[70,240],start:{x:-150,z:TP.HWY_Z,h:0},
+    audio:{ambience:'city-ambience',ambVol:.7,music:['music-total-war','music-revolution'],musVol:.32}, // js/musicdata.js (audio.js musicTick)
     // clear day: blue sky dome, bright sun high overhead, light haze toward the horizon
     sky:{top:0x1f5bb8,horizon:0x7fb0e0,ground:0x8a9a7c,fog:0x93bbe0,sun:[0xfff1dc,2.3],sunDir:[34,30,20],hemi:[0xd2e6ff,0x5c6a4e,.9],cloud:.38,grade:{sat:1.08,con:1.12,tint:[1.01,1,.98],vig:.22}},
     height:townHeight,ground:'town',groundNoise:.025,perimeter:'trees',

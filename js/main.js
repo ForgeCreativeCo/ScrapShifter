@@ -11,7 +11,7 @@ function setMode(m){if(m===3&&GY.land!=null){GY.land=null;return} // cancel a qu
 const mflash=S(puffT,0xFFD27A,true,0,1);sc.add(mflash);
 function loop(now){const rdt=Math.min(.05,(now-last)/1000);last=now;clock+=rdt;let ts=1;if(slowT>0){slowT-=rdt;ts=.18}if(MS.overlay)ts=0;/* briefing/garage pauses the game */const dt=rdt*ts;
 if(run){T+=dt;let done=true;const n=parts.length,fwd=mode===2||(mode===1&&prev===0);parts.forEach((pt,i)=>{const d=(fwd?i:n-1-i)*.035;const k=ss(cl((T-d)/.55));if(k<1)done=false;apply(pt,pt.f,pt.po[mode],k)});lift=L(liftF,LIFT[mode],ss(cl(T/.7)));if(done){run=false;st.textContent=TXT[mode]}}
-const {fx:hx,fz:hz}=drive(dt);engineTick();sfxTick(dt);
+const {fx:hx,fz:hz}=drive(dt);engineTick();sfxTick(dt);musicTick(rdt);
 rec*=Math.exp(-dt*7);gun.position.x=-rec*.45;
 const kick=rec*(mode===1?0:.15),bob=(stepBob-G.C)*ikK,sway=mode===2?TUNE.sway*gaitW*ikK*Math.sin(2*PI*gaitU):0;
 pl.slump+=((pl.dead?1:0)-pl.slump)*Math.min(1,dt*3); // wrecked: sag and list to one side
@@ -65,6 +65,7 @@ modeBtns.forEach(b=>b.onclick=()=>setMode(+b.dataset.m));
 document.getElementById('fire').onclick=fire;
 document.getElementById('rst').onclick=resetField;
 sb.onclick=toggleSound;
+{const mb=document.getElementById('mus');mb.querySelector('span').textContent=musicOn?'Music on':'Music off';mb.onclick=toggleMusic}
 const DRIVE=['KeyQ','KeyE','ShiftLeft','ShiftRight','KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'];
 window.addEventListener('keyup',e=>{keys[e.code]=false});
 window.addEventListener('blur',()=>{for(const k in keys)keys[k]=false});
@@ -75,7 +76,7 @@ window.addEventListener('keydown',e=>{
   if(e.repeat&&e.code!=='Space')return;if(audio())engine();
   if(e.key==='t'||e.key==='T'){toggleTune();return}
   if(e.key==='1')setMode(0);else if(e.key==='2')setMode(1);else if(e.key==='3')setMode(2);else if(e.key==='4')setMode(3);
-  else if(e.code==='Space'){e.preventDefault();if(mode===1)AIM.pending=true;else fire()}else if(e.key==='r'||e.key==='R')resetField();else if(e.key==='m'||e.key==='M')toggleSound();else if(e.key==='f'||e.key==='F')smash()});
+  else if(e.code==='Space'){e.preventDefault();if(mode===1)AIM.pending=true;else fire()}else if(e.key==='r'||e.key==='R')resetField();else if(e.key==='m'||e.key==='M')toggleSound();else if(e.key==='n'||e.key==='N')toggleMusic();else if(e.key==='f'||e.key==='F')smash()});
 // Map picker: reloads the page with ?map=<id>
 const mapSel=document.getElementById('mapSel');
 Object.entries(MAPS).forEach(([id,m])=>{const o=document.createElement('option');o.value=id;o.textContent='Map: '+m.name;o.selected=id===MAP_ID;mapSel.appendChild(o)});
@@ -83,3 +84,4 @@ mapSel.onchange=()=>{const u=new URL(location.href);u.searchParams.set('map',map
 const gfxSel=document.getElementById('gfxSel');gfxSel.value=GFX;gfxSel.onchange=()=>{setGfx(gfxSel.value);gfxSel.blur()};
 tuneEnv(); // after the whole scene exists
 missionInit(); // builds the first run's foundries and opens the briefing
+musicLoad(); // music + ambience for maps that have it (after start, so it doesn't hold up loading)
