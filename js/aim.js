@@ -4,7 +4,7 @@
 // ---------- Aiming: artillery turret + predicted impact marker ----------
 // FIRE per mode: [muzzle speed, blast power]. Blast radius on targets is 2.3*power (see explode).
 // Buggy: steady, punchy rounds. Artillery: heavy shells (also structural hits on buildings, see structHit). Mech: rapid fire.
-const FIRE=[[30,.9],[37,2.4],[34,.7]],RELOAD=[.6,2.4,.2];let reloadT=0;
+const FIRE=[[30,.9],[37,2.4],[34,.7],[0,2.4]],RELOAD=[.6,2.4,.2,.35];let reloadT=0; // [3] gyro bombs: artillery power, time between drops
 const AIM={yaw:0,elev:.25,k:0},ELEV_MIN=-.08,ELEV_MAX=1.45,ART_MIN=10; // the artillery turret traverses all the way round
 const pivArtPose=parts.find(pt=>pt.o===piv).po[1];
 const impactP=new THREE.Vector3();
@@ -25,7 +25,7 @@ marker.add(new THREE.Mesh(new THREE.RingGeometry(.12,.26,24).rotateX(-PI/2),ring
 [0,1,2,3].forEach(i=>{const tick=new THREE.Mesh(new THREE.PlaneGeometry(.06,.5).rotateX(-PI/2),ringM);tick.rotation.y=i*PI/2;tick.position.set(Math.cos(i*PI/2)*.55,0,-Math.sin(i*PI/2)*.55);marker.add(tick)});
 const _q=new THREE.Quaternion(),_v=new THREE.Vector3();
 // Step a virtual shell with the same gravity/integration as real shots until it hits; fills the arc line.
-function predict(){const p=new THREE.Vector3();muz.getWorldPosition(p);gun.getWorldQuaternion(_q);_v.set(1,0,0).applyQuaternion(_q).multiplyScalar(FIRE[mode][0]);
+function predict(){const p=new THREE.Vector3();if(mode===3){bombLaunch();p.copy(bombStart);_v.copy(bombVel)}else{muz.getWorldPosition(p);gun.getWorldQuaternion(_q);_v.set(1,0,0).applyQuaternion(_q).multiplyScalar(FIRE[mode][0])}
   const a=arcGeo.attributes.position.array,h=1/60;let n=0;const put=()=>{if(n<ARC_N){a[n*3]=p.x;a[n*3+1]=p.y;a[n*3+2]=p.z;n++}};put();
   for(let i=0;i<720;i++){_v.y-=9.8*h;p.addScaledVector(_v,h);if(i%3===2)put();
     if(shotHits(p)){put();arcGeo.setDrawRange(0,n);arcGeo.attributes.position.needsUpdate=true;impactP.copy(p);impactP.y=Math.max(gh(p.x,p.z),p.y-.05)+.08;return true}}
@@ -93,8 +93,8 @@ function aimTick(dt){
     const s='Artillery · '+how+' · click to fire, hold Shift for a high arc'+(reloadT>0?' · reloading':'')+note;
     if(s!==lastSt){st.textContent=lastSt=s}}else lastSt='';
   gunAim(dt);
-  arc.visible=marker.visible=false;if(run||!predict())return;
-  marker.visible=true;arc.visible=mode===1;marker.position.copy(impactP);blastRing.scale.setScalar(2.3*FIRE[mode][1]);
+  arc.visible=marker.visible=false;if(run||(mode===3&&!gyroAir())||!predict())return;
+  marker.visible=true;arc.visible=mode===1||mode===3;marker.position.copy(impactP);blastRing.scale.setScalar(2.3*FIRE[mode][1]);
   const ready=reloadT<=0,pulse=.85+.15*Math.sin(clock*7);
-  ringM.color.setHex(ready?0xFFB347:0x9A8F80);ringM.opacity=(mode===1?.85:.4)*(ready?pulse:.5);arc.material.opacity=ready?.6:.2;
+  ringM.color.setHex(ready?0xFFB347:0x9A8F80);ringM.opacity=(mode===1||mode===3?.85:.4)*(ready?pulse:.5);arc.material.opacity=ready?.6:.2;
 }

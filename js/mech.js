@@ -109,13 +109,13 @@ function poseArm(){if(mode!==2||run)return;const[th,push]=smashAngle(SMASH.t),c=
 // Running builds heat (TUNE.heatRun/s at full run), a bash adds 12. At 100 the mech overheats: it vents steam and
 // can't run or bash until it cools to 35. Walking cools at half rate, standing (or any other mode) at full rate.
 const HEAT={v:0,over:false,ventT:0},heatPill=document.getElementById('heatPill'),heatFill=document.getElementById('heatFill');
-function heatTick(dt){const mech=mode===2&&!run,running=mech&&runK>.3;
-  if(running)HEAT.v+=TUNE.heatRun*UPG.heat*runK*dt;else HEAT.v-=TUNE.heatCool*(mech&&Math.abs(car.v)>.5?.5:1)*dt;
+function heatTick(dt){const mech=mode===2&&!run,running=mech&&runK>.3,flying=mode===3&&!run&&gyroAir()&&!HEAT.over;
+  if(running)HEAT.v+=TUNE.heatRun*UPG.heat*runK*dt;else if(flying)HEAT.v+=GYRO.heat*UPG.heat*dt;else if(mode===3&&HEAT.over&&car.y-gh(car.x,car.z)>.4){}/* overheated gyro vents only once it has landed */else HEAT.v-=TUNE.heatCool*(mech&&Math.abs(car.v)>.5?.5:1)*dt;
   HEAT.v=Math.max(0,Math.min(100,HEAT.v));
-  if(!HEAT.over&&HEAT.v>=100){HEAT.over=true;toast('Overheated! Venting…',2);
+  if(!HEAT.over&&HEAT.v>=100){HEAT.over=true;toast(mode===3?'Overheated! Landing to vent…':'Overheated! Venting…',2);
     if(audio()){const t=AC.currentTime;nz(t,1.6,7000,2500,.35,'highpass');th(t,900,300,.5,.1)}}
   if(HEAT.over&&HEAT.v<=35)HEAT.over=false;
-  if(HEAT.over&&mode===2){HEAT.ventT+=dt;if(HEAT.ventT>.07){HEAT.ventT=0;[1,-1].forEach(s=>{const q=new THREE.Vector3(-.8,4.1,.5*s).applyMatrix4(root.matrixWorld);
+  if(HEAT.over&&(mode===2||mode===3)){HEAT.ventT+=dt;if(HEAT.ventT>.07){HEAT.ventT=0;[1,-1].forEach(s=>{const q=new THREE.Vector3(-.8,4.1,.5*s).applyMatrix4(root.matrixWorld);
     smoke(q,new THREE.Vector3(-Math.cos(car.h)*1.5+rnd(-.3,.3),rnd(1.5,2.6),Math.sin(car.h)*1.5+rnd(-.3,.3)),0xE8E4DC,.25,rnd(1.2,2),rnd(.8,1.3),.45)})}}
-  heatPill.style.display=mode===2?'flex':'none';heatFill.style.width=HEAT.v+'%';
+  heatPill.style.display=mode===2||mode===3?'flex':'none';heatFill.style.width=HEAT.v+'%';
   heatFill.style.background=HEAT.over?(Math.sin(clock*12)>0?'#d8553a':'#e9e4d8'):HEAT.v>70?'#d8553a':HEAT.v>40?'#d9a43a':'#c9b48a'}

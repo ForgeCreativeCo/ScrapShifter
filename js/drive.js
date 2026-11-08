@@ -36,6 +36,7 @@ function drive(dt){
   }else if(!run&&mode===2){ // mech: slow walk, turns in place
     const tv=(f>0?(held('ShiftLeft','ShiftRight')&&!HEAT.over?TUNE.run:TUNE.walk):f<0?-TUNE.back:0)*UPG.spd; // hold Shift to run
     car.v+=(tv-car.v)*Math.min(1,dt*TUNE.accel);car.h+=t*TUNE.turn*(1-.4*runK)*dt;
+  }else if(!run&&mode===3){gyroDrive(dt,f,t) // gyro: flies (gyro.js)
   }else{ // artillery is planted (the turret aims instead, see aimTick); transforming bleeds off speed
     car.v*=Math.exp(-dt*(run?3:6))}
   if(Math.abs(car.v)<.03&&!f)car.v=0;
@@ -45,12 +46,12 @@ function drive(dt){
   const moved=car.v*dt*lurch;
   car.x+=fx*moved;car.z+=fz*moved;
   gait(dt,moved,mode===2&&!run?t*TUNE.turn:0);
-  collide(fx,fz);
+  if(!gyroAir())collide(fx,fz); // flying over everything
   const lim=PLAY;car.x=Math.max(-lim,Math.min(lim,car.x));car.z=Math.max(-lim,Math.min(lim,car.z));
   // follow terrain: sample front/back and both sides
   const sx=Math.sin(car.h),sz=Math.cos(car.h);
   const hf=gh(car.x+fx*1.1,car.z+fz*1.1),hb=gh(car.x-fx*1.1,car.z-fz*1.1),hl=gh(car.x+sx*.95,car.z+sz*.95),hr=gh(car.x-sx*.95,car.z-sz*.95);
-  const k=Math.min(1,dt*10);car.pitch+=(Math.atan2(hf-hb,2.2)-car.pitch)*k;car.roll+=(-Math.atan2(hl-hr,1.9)-car.roll)*k;car.y+=((hf+hb+hl+hr)/4-car.y)*k;
+  if(mode===3&&!run)gyroAlt(dt,t);else{const k=Math.min(1,dt*10);car.pitch+=(Math.atan2(hf-hb,2.2)-car.pitch)*k;car.roll+=(-Math.atan2(hl-hr,1.9)-car.roll)*k;car.y+=((hf+hb+hl+hr)/4-car.y)*k}
   if(mode===0&&!run){wheelSpin=(wheelSpin+car.v*dt/.48)%(2*PI);wheels.forEach(w=>w.rotation.y=-wheelSpin)}
   // dust kicked up from the rear wheels
   dustT+=dt;if(mode===0&&Math.abs(car.v)>5&&dustT>.05){dustT=0;[1,-1].forEach(s=>{const x=car.x-fx*1.1+sx*.95*s,z=car.z-fz*1.1+sz*.95*s;smoke(new THREE.Vector3(x,gh(x,z)+.2,z),new THREE.Vector3(-fx*car.v*.15+rnd(-.3,.3),rnd(.3,.8),-fz*car.v*.15+rnd(-.3,.3)),0x8A7A60,.3,rnd(1.2,2),rnd(.9,1.5),.3*Math.min(1,Math.abs(car.v)/12))})}

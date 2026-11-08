@@ -3,7 +3,7 @@
 
 // ---------- Combat: health, blast damage, enemy crawlers ----------
 // Blast damage falls off linearly to 0 at 2.3*power + 1.2 m. The player takes extra damage mid-transform.
-const PL_H=[2.2,2.6,5.2],ARMOR=[1.25,.7,.85],TRANSFORM_ARMOR=1.5,PL_DMG=45,EN_DMG=60,EN_HP=60,ENEMY_MAX=2;
+const PL_H=[2.2,2.6,5.2,1.9],ARMOR=[1.25,.7,.85,1.4],TRANSFORM_ARMOR=1.5,PL_DMG=45,EN_DMG=60,EN_HP=60,ENEMY_MAX=2;
 const EN_SHELL={spd:22,pw:.85},EN_RANGE=48,EN_PREF=[14,26]; // shell, engage range, preferred band
 const pl={hp:100,dead:false,lastHit:-99,slump:0};let kills=0,PL_MAX=100; // PL_MAX grows with armor upgrades (js/mission.js)
 const enemies=[];let spawnT=4,bikeT=20; // first crawler rolls in after a few seconds, the next 8s later
@@ -72,7 +72,7 @@ function pushOut(o,cx,cz,m){const dx=o.x-cx,dz=o.z-cz,d=Math.hypot(dx,dz);if(d<m
 function enemyTick(e,dt){
   if(e.dead){e.deadT+=dt;if(e.deadT>14)e.g.position.y-=dt*.3;if(e.deadT>20)removeEnemy(e);return}
   if(e.type==='bike')return bikeTick(e,dt);
-  droneFlak(e,dt); // crawlers shoot at the spotter drone (drone.js)
+  droneFlak(e,dt);gyroFlak(e,dt); // crawlers shoot at the spotter drone (drone.js) and the flying gyro (gyro.js)
   const tg=enemyTarget(e),dx=tg?tg.x-e.x:0,dz=tg?tg.z-e.z:0,d=tg?Math.hypot(dx,dz):1e9,engage=!!tg&&d<EN_RANGE,toP=Math.atan2(-dz,dx),pdx=car.x-e.x,pdz=car.z-e.z,pd=Math.hypot(pdx,pdz); // target: player or a convoy truck
   // knockback from bashes/rams, and a stun that stops it driving and firing
   e.x+=e.kx*dt;e.z+=e.kz*dt;const kd=Math.exp(-dt*4);e.kx*=kd;e.kz*=kd;e.stun=Math.max(0,e.stun-dt);
@@ -98,7 +98,7 @@ function enemyTick(e,dt){
   for(const o of targets){const h=o.userData.h;pushOut(e,Math.max(o.position.x-h.x,Math.min(e.x,o.position.x+h.x)),Math.max(o.position.z-h.z,Math.min(e.z,o.position.z+h.z)),1.5)}
   for(const o of enemies)if(o!==e&&!o.dead)pushOut(e,o.x,o.z,3);
   for(const pc of piecesNear(e.x,e.z,2.5))obbPush(e,pc,1.5);
-  if(!pl.dead)pushOut(e,car.x,car.z,1.5+CR); // crawler stops against the player
+  if(!pl.dead&&!gyroAir())pushOut(e,car.x,car.z,1.5+CR); // crawler stops against the player
   const lim=PLAY-1;e.x=Math.max(-lim,Math.min(lim,e.x));e.z=Math.max(-lim,Math.min(lim,e.z));
   const sx=Math.sin(e.h),sz=Math.cos(e.h),hf=gh(e.x+fx*1.2,e.z+fz*1.2),hb=gh(e.x-fx*1.2,e.z-fz*1.2),hl=gh(e.x+sx*.9,e.z+sz*.9),hr=gh(e.x-sx*.9,e.z-sz*.9),k=Math.min(1,dt*8);
   e.pitch+=(Math.atan2(hf-hb,2.4)-e.pitch)*k;e.roll+=(-Math.atan2(hl-hr,1.8)-e.roll)*k;e.y+=((hf+hb+hl+hr)/4-e.y)*k;

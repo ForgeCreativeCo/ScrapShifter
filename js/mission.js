@@ -62,7 +62,7 @@ function truckShotHit(sp){for(const t of trucks){if(t.out)continue;const dx=sp.x
 function truckBlocked(t){const a=routeAt(t.s+6);a.x+=Math.sin(a.h)*t.lat;a.z+=Math.cos(a.h)*t.lat;const q=_mp.set(a.x,gh(a.x,a.z)+1,a.z);
   for(const pc of piecesNear(a.x,a.z,3))if(pc.blocks&&pc.state<2&&pieceDist(pc,q)<1.5)return pc;
   for(const e of enemies)if(!e.dead&&Math.hypot(e.x-a.x,e.z-a.z)<4)return e;
-  if(!pl.dead&&Math.hypot(car.x-a.x,car.z-a.z)<4){if(clock-t.honkT>3&&audio()){t.honkT=clock;const k=AC.currentTime;th(k,330,320,.35,.12);th(k,415,405,.35,.1)}return 'player'}
+  if(!pl.dead&&!gyroAir()&&Math.hypot(car.x-a.x,car.z-a.z)<4){if(clock-t.honkT>3&&audio()){t.honkT=clock;const k=AC.currentTime;th(k,330,320,.35,.12);th(k,415,405,.35,.1)}return 'player'}
   return null}
 function convoyTick(dt){if(!trucks.length)return;
   const lead=trucks.find(t=>!t.dead&&!t.out);if(!MS.rolling&&lead&&!pl.dead&&Math.hypot(car.x-lead.x,car.z-lead.z)<35){MS.rolling=true;toast('Convoy rolling. Keep the trucks alive!',3)}
@@ -83,7 +83,8 @@ function convoyTick(dt){if(!trucks.length)return;
 
 // ---------- Enemy targets: the player or (once the convoy rolls) the nearest truck; bikes go for trucks first
 const PLT={x:0,y:0,z:0,h:0,v:0,pl:true};
-function enemyTarget(e){let best=null,bd=1e9;if(!pl.dead){PLT.x=car.x;PLT.y=car.y;PLT.z=car.z;PLT.h=car.h;PLT.v=car.v;best=PLT;bd=Math.hypot(car.x-e.x,car.z-e.z)}
+function enemyTarget(e){let best=null,bd=1e9;if(!pl.dead&&!(e.type==='bike'&&gyroAir())){ // bikes can't reach a flying gyro
+  PLT.x=car.x;PLT.y=car.y;PLT.z=car.z;PLT.h=car.h;PLT.v=car.v;best=PLT;bd=Math.hypot(car.x-e.x,car.z-e.z)}
   if(MS.rolling)for(const t of trucks){if(t.dead||t.out)continue;const d=Math.hypot(t.x-e.x,t.z-e.z)*(e.type==='bike'?.6:.9);if(d<bd){bd=d;best=t}}
   return best}
 

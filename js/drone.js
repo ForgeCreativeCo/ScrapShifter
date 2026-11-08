@@ -49,7 +49,7 @@ function hurtDrone(d){if(!droneUp())return;DR.hp-=d;sparks(DR.p.clone(),6);traum
 
 // Rotor sound: the recorded hover loop (sfx/drone.mp3), placed in the world; synth buzz until it has decoded
 let droneSnd=null;
-function droneSound(on,spd){if(!AC)return;
+function droneSound(on,spd){if(!AC||mode===3)return; // gyro mode drives the same loop as its rotor sound (gyro.js)
   if(SFX.drone){const s=spot(DR.p,.04);loopSnd('drone',on?Math.min(1.1,1.3*s.a):0,.95+Math.min(.15,spd*.008),s.pan);if(droneSnd)droneSnd.g.gain.setTargetAtTime(0,AC.currentTime,.1);return}
   if(!droneSnd){if(!on)return;const o=AC.createOscillator(),o2=AC.createOscillator(),f=AC.createBiquadFilter(),g=AC.createGain();
   o.type=o2.type='sawtooth';f.type='bandpass';f.frequency.value=1100;f.Q.value=.8;g.gain.value=0;o.connect(f);o2.connect(f);f.connect(g);g.connect(master);o.start();o2.start();droneSnd={o,o2,g}}
