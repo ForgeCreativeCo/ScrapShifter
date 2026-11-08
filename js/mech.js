@@ -80,14 +80,14 @@ const toggleTune=()=>{placeTune();tp.classList.toggle('open');tb.classList.toggl
 // Wind up, lunge, slam the shield arm forward. The arm parts rotate about the shoulder in the hull's x/y plane.
 // The hit lands at t=.5: one-shots a crawler (knockback + stun) and smashes target stacks in front.
 const SMASH={t:-1,cd:0,hit:false},SMASH_TIME=.6,SMASH_CD=1.1,SMASH_DMG=75,SMASH_R=2.2,SHOULDER=[0,4.1];
-function smash(){if(mode!==2||run||pl.dead||SMASH.cd>0||HEAT.over)return;HEAT.v+=12;SMASH.t=0;SMASH.cd=SMASH_CD;SMASH.hit=false;
+function smash(){if(mode!==2||run||pl.dead||SMASH.cd>0||HEAT.over)return;HEAT.v+=12*UPG.heat;SMASH.t=0;SMASH.cd=SMASH_CD;SMASH.hit=false;
   if(audio()){const t=AC.currentTime;nz(t,.35,500,2600,.2,'bandpass');th(t,180,320,.3,.12)}} // servo whine on the wind-up
 function smashAngle(t){ // arm swing (rad) and forward thrust over the bash
   if(t<0)return[0,0];if(t<.4)return[-.9*ss(t/.4),0];if(t<.55)return[L(-.9,1.35,ss((t-.4)/.15)),ss((t-.4)/.15)*.35];
   if(t<.7)return[1.35,.35];const k=ss((t-.7)/.3);return[L(1.35,0,k),L(.35,0,k)]}
 function smashHit(){const fx=Math.cos(car.h),fz=-Math.sin(car.h),rx=Math.sin(car.h),rz=Math.cos(car.h);
   const c=new THREE.Vector3(car.x+fx*2.3+rx*.5,0,car.z+fz*2.3+rz*.5);c.y=gh(c.x,c.z)+.3;let hits=0;
-  enemies.forEach(e=>{if(!e.dead&&Math.hypot(e.x-c.x,e.z-c.z)<SMASH_R+1.2){damageEnemy(e,SMASH_DMG);e.kx+=fx*9;e.kz+=fz*9;e.stun=1.2;hits++}});
+  enemies.forEach(e=>{if(!e.dead&&Math.hypot(e.x-c.x,e.z-c.z)<SMASH_R+1.2){damageEnemy(e,SMASH_DMG);e.kx+=fx*9;e.kz+=fz*9;e.stun=1.2;hits++}});hits+=nestBash(c);
   piecesNear(c.x,c.z,SMASH_R+1).forEach(pc=>{if(pieceDist(pc,c.clone().setY(car.y+1.5))<SMASH_R){damagePiece(pc,BASH_STRUCT,new THREE.Vector3(car.x,car.y+1.5,car.z));hits++}});
   targets.slice().forEach(o=>{const h=o.userData.h,dx=Math.max(Math.abs(o.position.x-c.x)-h.x,0),dz=Math.max(Math.abs(o.position.z-c.z)-h.z,0);
     if(Math.hypot(dx,dz)<SMASH_R&&o.position.y<car.y+5.5){shatter(o,new THREE.Vector3(car.x,car.y+1.5,car.z),9);hits++}});
@@ -110,7 +110,7 @@ function poseArm(){if(mode!==2||run)return;const[th,push]=smashAngle(SMASH.t),c=
 // can't run or bash until it cools to 35. Walking cools at half rate, standing (or any other mode) at full rate.
 const HEAT={v:0,over:false,ventT:0},heatPill=document.getElementById('heatPill'),heatFill=document.getElementById('heatFill');
 function heatTick(dt){const mech=mode===2&&!run,running=mech&&runK>.3;
-  if(running)HEAT.v+=TUNE.heatRun*runK*dt;else HEAT.v-=TUNE.heatCool*(mech&&Math.abs(car.v)>.5?.5:1)*dt;
+  if(running)HEAT.v+=TUNE.heatRun*UPG.heat*runK*dt;else HEAT.v-=TUNE.heatCool*(mech&&Math.abs(car.v)>.5?.5:1)*dt;
   HEAT.v=Math.max(0,Math.min(100,HEAT.v));
   if(!HEAT.over&&HEAT.v>=100){HEAT.over=true;toast('Overheated! Venting…',2);
     if(audio()){const t=AC.currentTime;nz(t,1.6,7000,2500,.35,'highpass');th(t,900,300,.5,.1)}}

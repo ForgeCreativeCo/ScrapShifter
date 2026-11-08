@@ -93,7 +93,8 @@ function slabState(p,s){setInst(p,s===0);clearDmg(p);if(s===1){const g=new THREE
 let B_collapsing=false;
 function checkCollapse(B){for(let f=0;f<B.collapsedFrom;f++){const lv=B.levels[f],gone=lv.filter(p=>p.state===2).length;
   if(gone/lv.length>=TUNE.collapse){collapseFrom(B,f);return}}}
-function collapseFrom(B,f){if(B.roofMesh)B.roofMesh.visible=false;const wasBurning=B.levels.flat().some(p=>p.fire>0);B_collapsing=true;const was=B.collapsedFrom;B.collapsedFrom=f;if(wasBurning&&f===0)fireSmoulder(B);
+function collapseFrom(B,f){if(typeof swarmCollapse==='function')swarmCollapse(B,f); // crushes a foundry inside
+  if(B.roofMesh)B.roofMesh.visible=false;const wasBurning=B.levels.flat().some(p=>p.fire>0);B_collapsing=true;const was=B.collapsedFrom;B.collapsedFrom=f;if(wasBurning&&f===0)fireSmoulder(B);
   for(let l=f;l<was;l++){B.levels[l].forEach(p=>{if(p.state<2){p.hp=0;setPieceState(p,2,null)}});const sl=B.slabs[l];if(sl.state<2){sl.hp=0;setPieceState(sl,2,null)}}
   if(f>0){const sl=B.slabs[f-1];if(sl.state<1){sl.hp=Math.min(sl.hp,sl.max*.5);setPieceState(sl,1,null)}} // falling floors crack the slab they land on
   B_collapsing=false;

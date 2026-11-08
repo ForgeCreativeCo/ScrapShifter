@@ -5,6 +5,7 @@
 // Vehicle faces local +x. Heading h rotates +x toward -z, so A (left) increases h.
 const car={x:MAP.start.x,y:0,z:MAP.start.z,h:MAP.start.h,v:0,pitch:0,roll:0};root.rotation.order='YZX';
 const keys={};
+const UPG={spd:1,heat:1}; // rig upgrade multipliers (set by applyUpgrades in js/mission.js)
 const wheels=parts.filter(pt=>pt.po[0].r[0]===PI/2).map(pt=>pt.o);let wheelSpin=0,dustT=0;
 const CR=1.5; // vehicle collision radius
 const held=(...c)=>c.some(k=>keys[k]);
@@ -29,11 +30,11 @@ function collide(fx,fz){let n=null;
 function drive(dt){
   const f=pl.dead?0:(held('KeyW','ArrowUp')?1:0)-(held('KeyS','ArrowDown')?1:0),t=pl.dead?0:(held('KeyA','ArrowLeft')?1:0)-(held('KeyD','ArrowRight')?1:0);
   if(!run&&mode===0){ // buggy: fast, can't turn in place
-    if(f>0)car.v+=(car.v<0?30:14)*dt;else if(f<0)car.v-=(car.v>0?30:10)*dt;else car.v*=Math.exp(-dt*.9);
-    car.v=Math.max(-7,Math.min(17,car.v));
+    if(f>0)car.v+=(car.v<0?30:14*UPG.spd)*dt;else if(f<0)car.v-=(car.v>0?30:10)*dt;else car.v*=Math.exp(-dt*.9);
+    car.v=Math.max(-7,Math.min(17*UPG.spd,car.v));
     car.h+=t*2.2*Math.min(1,Math.abs(car.v)/4)*Math.sign(car.v)*(1-Math.abs(car.v)/45)*dt;
   }else if(!run&&mode===2){ // mech: slow walk, turns in place
-    const tv=f>0?(held('ShiftLeft','ShiftRight')&&!HEAT.over?TUNE.run:TUNE.walk):f<0?-TUNE.back:0; // hold Shift to run
+    const tv=(f>0?(held('ShiftLeft','ShiftRight')&&!HEAT.over?TUNE.run:TUNE.walk):f<0?-TUNE.back:0)*UPG.spd; // hold Shift to run
     car.v+=(tv-car.v)*Math.min(1,dt*TUNE.accel);car.h+=t*TUNE.turn*(1-.4*runK)*dt;
   }else{ // artillery is planted (the turret aims instead, see aimTick); transforming bleeds off speed
     car.v*=Math.exp(-dt*(run?3:6))}

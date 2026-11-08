@@ -7,7 +7,7 @@ const TXT=['Buggy mode. WASD to drive, mouse aims, click to fire.','Artillery mo
 const modeBtns=document.querySelectorAll('button[data-m]');let camPull=1;const _camA=new THREE.Vector3(),_camP=new THREE.Vector3();
 function setMode(m){if(pl.dead||(m===mode&&!run))return;prev=mode;mode=m;modeBtns.forEach(b=>b.classList.toggle('on',+b.dataset.m===m));parts.forEach(pt=>{const o=pt.o;pt.f={p:o.position.toArray(),r:[o.rotation.x,o.rotation.y,o.rotation.z],s:o.scale.toArray()}});liftF=lift;T=0;run=true;st.textContent='Transforming…';if(audio()){const t=AC.currentTime;for(let i=0;i<6;i++){nz(t+i*.12,.12,3000,800,.25,'bandpass');th(t+i*.12,rnd(300,500),rnd(80,150),.1,.15)}}}
 const mflash=S(puffT,0xFFD27A,true,0,1);sc.add(mflash);
-function loop(now){const rdt=Math.min(.05,(now-last)/1000);last=now;clock+=rdt;let ts=1;if(slowT>0){slowT-=rdt;ts=.18}const dt=rdt*ts;
+function loop(now){const rdt=Math.min(.05,(now-last)/1000);last=now;clock+=rdt;let ts=1;if(slowT>0){slowT-=rdt;ts=.18}if(MS.overlay)ts=0;/* briefing/garage pauses the game */const dt=rdt*ts;
 if(run){T+=dt;let done=true;const n=parts.length,fwd=mode===2||(mode===1&&prev===0);parts.forEach((pt,i)=>{const d=(fwd?i:n-1-i)*.035;const k=ss(cl((T-d)/.55));if(k<1)done=false;apply(pt,pt.f,pt.po[mode],k)});lift=L(liftF,LIFT[mode],ss(cl(T/.7)));if(done){run=false;st.textContent=TXT[mode]}}
 const {fx:hx,fz:hz}=drive(dt);engineTick();
 rec*=Math.exp(-dt*7);gun.position.x=-rec*.45;
@@ -24,7 +24,7 @@ for(let i=shots.length-1;i>=0;i--){const s=shots[i];s.v.y-=9.8*dt;s.m.position.a
 const sp=s.m.position;const hit=shotHits(sp,s.owner);
 if(hit){const p=sp.clone();p.y=Math.max(gh(p.x,p.z)+.1,p.y);sc.remove(s.m);if(s.warn)sc.remove(s.warn);shots.splice(i,1);explode(p,s.pw,s.heavy)}
 else if(s.warn){s.warn.material.opacity=.35+.35*Math.sin(clock*18)}}
-combatTick(dt);
+combatTick(dt);missionTick(dt);marksTick();
 for(let i=fx.length-1;i>=0;i--){const f=fx[i];if(f.w>0){f.w-=dt;if(f.o)f.o.visible=false;continue}if(f.o)f.o.visible=true;f.k+=dt/f.d;if(f.k>=1){if(f.o){sc.remove(f.o);if(f.o.isSprite)f.o.material.dispose()}fx.splice(i,1);continue}f.u(f,f.k,dt)}
 lookY+=(LOOK[mode]-lookY)*Math.min(1,rdt*2);
 // chase camera: trail behind the heading with a little lag; drag offset springs back after 1.5s idle
@@ -54,7 +54,7 @@ const sh=spawnShell(p,dir.clone().multiplyScalar(spd),pw,'player',mode===1?.2:.1
 rec=mode===1?1:mode===2?.35:.7;mf=mode===2?.7:1;trauma=Math.min(1,trauma+(mode===1?.45:mode===2?.05:.18));fireSnd(mode); // mech: light kick per round, it fires a stream
 for(let i=0;i<(mode===1?14:mode===2?2:5);i++)smoke(p.clone(),dir.clone().multiplyScalar(rnd(1.5,5)).add(new THREE.Vector3(rnd(-.6,.6),rnd(0,.8),rnd(-.6,.6))),0x8C857A,rnd(.3,.6),rnd(1.5,2.6)*(mode===1?1.4:1),rnd(1.4,2.6),.55);
 if(mode===1){for(let i=0;i<16;i++){const a=Math.random()*6.28,x=car.x+Math.cos(a)*1.4,z=car.z+Math.sin(a)*1.4;smoke(new THREE.Vector3(x,gh(x,z)+.3,z),new THREE.Vector3(Math.cos(a)*rnd(3,6),rnd(.2,.7),Math.sin(a)*rnd(3,6)),0x8A7A60,.6,2.6,rnd(1.4,2.4),.55)}}}
-function resetField(){buildTargets();initGround();resetStructures();resetBuildings();resetFires();resetCombat();HEAT.v=0;HEAT.over=false}
+function resetField(){applyUpgrades();buildTargets();initGround();resetStructures();resetBuildings();resetFires();resetCombat();HEAT.v=0;HEAT.over=false;resetMission();if(!MS.overlay)MS.phase='nests'}
 const sb=document.getElementById('snd');
 function toggleSound(){soundOn=!soundOn;sb.querySelector('span').textContent=soundOn?'Sound on':'Sound off'}
 modeBtns.forEach(b=>b.onclick=()=>setMode(+b.dataset.m));
@@ -66,6 +66,7 @@ window.addEventListener('keyup',e=>{keys[e.code]=false});
 window.addEventListener('blur',()=>{for(const k in keys)keys[k]=false});
 window.addEventListener('keydown',e=>{
   if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName))return; // let sliders and the copy box use keys
+  if(MS.overlay){if(e.key==='Enter'){e.preventDefault();deploy()}return} // briefing/garage open
   if(DRIVE.includes(e.code)){e.preventDefault();keys[e.code]=true;if(audio())engine();return}
   if(e.repeat&&e.code!=='Space')return;if(audio())engine();
   if(e.key==='t'||e.key==='T'){toggleTune();return}
@@ -77,3 +78,4 @@ Object.entries(MAPS).forEach(([id,m])=>{const o=document.createElement('option')
 mapSel.onchange=()=>{const u=new URL(location.href);u.searchParams.set('map',mapSel.value);location.href=u.href};
 const gfxSel=document.getElementById('gfxSel');gfxSel.value=GFX;gfxSel.onchange=()=>{setGfx(gfxSel.value);gfxSel.blur()};
 tuneEnv(); // after the whole scene exists
+missionInit(); // builds the first run's foundries and opens the briefing

@@ -9,7 +9,7 @@
   * { box-sizing:border-box; }
   html, body { margin:0; height:100%; background:var(--bg); color:var(--text); font-family:system-ui, -apple-system, "Segoe UI", sans-serif; }
   body { display:flex; flex-direction:column; }
-  #bar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:10px 16px; background:var(--panel); border-bottom:1px solid var(--border); }
+  #bar { position:relative; z-index:11; display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:10px 16px; background:var(--panel); border-bottom:1px solid var(--border); }
   button { background:transparent; color:var(--text); border:1px solid var(--border); border-radius:8px; padding:7px 12px; font:inherit; font-size:14px; cursor:pointer; }
   button:hover, select:hover { border-color:var(--accent); }
   select { background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:7px 10px; font:inherit; font-size:14px; cursor:pointer; }
@@ -41,6 +41,41 @@
   #ebars { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:2; }
   .ebar { position:absolute; width:46px; height:5px; margin-left:-23px; background:rgba(20,18,15,.75); border:1px solid rgba(0,0,0,.5); border-radius:3px; overflow:hidden; }
   .ebar i { display:block; height:100%; background:#d8553a; }
+  /* mission HUD: objective panel, world markers, briefing/garage overlay (js/mission.js) */
+  #obj { position:fixed; left:16px; top:72px; max-width:min(380px, calc(100% - 32px)); background:rgba(29,27,24,.82); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:8px; padding:8px 12px; pointer-events:none; z-index:4; }
+  #obj .ot { font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--accent); }
+  #objT { font-size:14px; margin-top:2px; }
+  #objS { font-size:12px; color:var(--muted); margin-top:3px; }
+  #objS:empty { display:none; }
+  #marks { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:2; }
+  .mk { position:absolute; transform:translate(-50%,-50%); display:none; text-align:center; font-size:11px; letter-spacing:.05em; text-transform:uppercase; text-shadow:0 1px 2px #000; white-space:nowrap; }
+  .mk .br { display:block; width:26px; height:26px; margin:0 auto; border:2px solid currentColor; border-radius:3px; box-shadow:0 0 6px rgba(0,0,0,.6); }
+  .mk .ar { display:none; width:0; height:0; margin:0 auto; border-left:14px solid currentColor; border-top:8px solid transparent; border-bottom:8px solid transparent; filter:drop-shadow(0 0 2px #000); }
+  .mk.off .br { display:none; } .mk.off .ar { display:block; }
+  .mk span { display:block; margin-top:3px; padding:1px 6px; background:rgba(0,0,0,.5); border-radius:3px; color:#f2ede2; }
+  .mk b { display:block; width:44px; height:4px; margin:3px auto 0; background:rgba(0,0,0,.55); border-radius:2px; overflow:hidden; }
+  .mk u { display:block; height:100%; background:currentColor; }
+  .mk.nest { color:#ff5a3a; } .mk.truck { color:#6fe08a; } .mk.ext { color:#22e6ff; } .mk.warn { color:#ffc93a; }
+  #ovl { position:fixed; inset:0; display:none; align-items:center; justify-content:center; padding:16px; background:rgba(15,13,11,.74); z-index:10; }
+  #ovl.show { display:flex; }
+  #ovl .card { width:100%; max-width:580px; max-height:100%; overflow:auto; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:20px 22px; }
+  #ovl h1 { margin:0 0 8px; font-size:22px; letter-spacing:.03em; color:var(--accent); }
+  #ovl p { margin:0 0 12px; font-size:14px; line-height:1.55; color:var(--muted); }
+  #ovl p b { color:var(--text); font-weight:600; }
+  #ovlStats { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+  #ovlStats:empty { display:none; }
+  #ovlStats div { flex:1; min-width:96px; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px 10px; font-size:12px; color:var(--muted); }
+  #ovlStats b { display:block; font-size:20px; color:var(--text); font-variant-numeric:tabular-nums; }
+  #ovl h3 { display:flex; justify-content:space-between; align-items:baseline; margin:6px 0 8px; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--accent); }
+  #ovl h3 span { font-size:13px; letter-spacing:0; text-transform:none; color:var(--muted); }
+  #ovl h3 span b { color:var(--text); font-variant-numeric:tabular-nums; }
+  .up { display:grid; grid-template-columns:1fr auto auto; gap:10px; align-items:center; padding:8px 0; border-top:1px solid var(--border); }
+  .up b { display:block; font-size:14px; font-weight:600; } .up small { font-size:12px; color:var(--muted); }
+  .pips { display:flex; gap:3px; } .pips i { width:9px; height:9px; border-radius:2px; background:#3a352e; } .pips i.on { background:var(--accent); }
+  .up button { min-width:92px; padding:6px 10px; font-size:13px; }
+  .up button:disabled { opacity:.4; cursor:default; border-color:var(--border); }
+  #deploy { width:100%; margin-top:14px; padding:10px; font-size:15px; border-color:var(--accent); color:var(--accent); }
+  @media (max-width:520px){ .up { grid-template-columns:1fr auto; } .pips { grid-column:1; } }
   #c { flex:1; width:100%; display:block; touch-action:none; cursor:crosshair; background:#9C9384; }
 </style>
 </head>
@@ -50,7 +85,7 @@
   <button data-m="1">Artillery<kbd>2</kbd></button>
   <button data-m="2">Mech<kbd>3</kbd></button>
   <button id="fire">Fire<kbd>Space</kbd></button>
-  <button id="rst">Reset field<kbd>R</kbd></button>
+  <button id="rst">Restart run<kbd>R</kbd></button>
   <button id="snd"><span>Sound on</span><kbd>M</kbd></button>
   <button id="tuneBtn">Tune<kbd>T</kbd></button>
   <select id="mapSel" title="Map"></select>
@@ -58,7 +93,11 @@
   <span id="st">Loading 3D view…</span>
 </div>
 <div id="tune"></div>
-<div id="hud"><div class="pill"><span class="lbl">Hull</span><div id="hpBar"><div id="hpFill"></div></div><span id="hpNum">100</span></div><div class="pill" id="heatPill" style="display:none"><span class="lbl">Heat</span><div id="heatBar"><div id="heatFill"></div></div></div><div class="pill"><span class="lbl">Kills</span><span id="kills">0</span></div></div>
+<div id="hud"><div class="pill"><span class="lbl">Hull</span><div id="hpBar"><div id="hpFill"></div></div><span id="hpNum">100</span></div><div class="pill" id="heatPill" style="display:none"><span class="lbl">Heat</span><div id="heatBar"><div id="heatFill"></div></div></div><div class="pill"><span class="lbl">Kills</span><span id="kills">0</span></div><div class="pill"><span class="lbl">Scrap</span><span id="scrapN">0</span></div></div>
+<div id="obj"><div class="ot">Objective</div><div id="objT"></div><div id="objS"></div></div>
+<div id="marks"></div>
+<div id="ovl"><div class="card"><h1 id="ovlT">Scrap Shifter</h1><p id="ovlSub"></p><div id="ovlStats"></div>
+  <h3>Garage <span>Banked scrap: <b id="bank">0</b></span></h3><div id="ups"></div><button id="deploy">Deploy<kbd>Enter</kbd></button></div></div>
 <div id="toast"></div><div id="hurt"></div><div id="ebars"></div>
 <canvas id="c"></canvas>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -95,6 +134,8 @@ window.addEventListener('error',e=>{const s=document.getElementById('st');if(s)s
 <script src="js/mech.js"></script>
 <script src="js/aim.js"></script>
 <script src="js/combat.js"></script>
+<script src="js/swarm.js"></script>
+<script src="js/mission.js"></script>
 <script src="js/main.js"></script>
 <script>
 // A missing js/ file fails silently (no error event), so check that the last one ran.

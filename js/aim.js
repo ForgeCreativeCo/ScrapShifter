@@ -13,6 +13,7 @@ function shotHits(sp,owner='player'){if(sp.y<gh(sp.x,sp.z)+.05||Math.abs(sp.x)>H
   for(const o of targets){const h=o.userData.h;if(Math.abs(o.position.x-sp.x)<h.x+.15&&Math.abs(o.position.y-sp.y)<h.y+.15&&Math.abs(o.position.z-sp.z)<h.z+.15)return true}
   for(const pc of piecesNear(sp.x,sp.z,.3))if(pieceHitShot(pc,sp))return true;
   for(const e of enemies)if(!e.dead&&e!==owner&&Math.hypot(sp.x-e.x,sp.z-e.z)<e.r&&sp.y>e.y-.2&&sp.y<e.y+e.hh)return true;
+  if(nestShotHit(sp)||truckShotHit(sp))return true; // foundry cores (swarm.js), convoy trucks (mission.js)
   if(owner!=='player'&&!pl.dead&&Math.hypot(sp.x-car.x,sp.z-car.z)<(mode===1?1.6:1.3)&&sp.y>car.y-.2&&sp.y<car.y+PL_H[mode])return true;
   return false}
 const ARC_N=240,arcGeo=new THREE.BufferGeometry();arcGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(ARC_N*3),3));
