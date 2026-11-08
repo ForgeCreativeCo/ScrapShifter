@@ -22,7 +22,7 @@ function damagePlayer(d,from){if(pl.dead)return;d*=run?TRANSFORM_ARMOR:ARMOR[mod
     if(audio()){const t=AC.currentTime;nz(t,.35,5200,1800,.55,'bandpass');th(t,620,300,.3,.3)}} // bright clang off the plate
   else{sparks(new THREE.Vector3(car.x,car.y+1.2,car.z),8);hitClank(root.position,1)}
   pl.hp-=d;pl.lastHit=clock;hurtA=Math.min(1,hurtA+d/30);trauma=Math.min(1,trauma+d/60);
-  if(pl.hp<=0){pl.hp=0;pl.dead=true;AIM.lock=null;firing=false;
+  if(pl.hp<=0){pl.hp=0;pl.dead=true;AIM.pending=false;firing=false;
     explode(new THREE.Vector3(car.x,car.y+.8,car.z),1.4);slowT=.35;
     let tt=0;addFx(null,14,(f,k,dt)=>{tt+=dt;if(tt>.12&&pl.dead){tt=0;const q=new THREE.Vector3(car.x+rnd(-.6,.6),car.y+1,car.z+rnd(-.6,.6));fireball(q,new THREE.Vector3(0,rnd(1,2),0),.35,.9*(1-k),rnd(.4,.7));smoke(q.clone().setY(q.y+.8),new THREE.Vector3(rnd(-.2,.2),rnd(1.5,2.5),rnd(-.2,.2)),0x221F1B,.7,3.2,rnd(4,6),.6)}});
     toast('Wrecked!',3)}}
@@ -72,6 +72,7 @@ function pushOut(o,cx,cz,m){const dx=o.x-cx,dz=o.z-cz,d=Math.hypot(dx,dz);if(d<m
 function enemyTick(e,dt){
   if(e.dead){e.deadT+=dt;if(e.deadT>14)e.g.position.y-=dt*.3;if(e.deadT>20)removeEnemy(e);return}
   if(e.type==='bike')return bikeTick(e,dt);
+  droneFlak(e,dt); // crawlers shoot at the spotter drone (drone.js)
   const tg=enemyTarget(e),dx=tg?tg.x-e.x:0,dz=tg?tg.z-e.z:0,d=tg?Math.hypot(dx,dz):1e9,engage=!!tg&&d<EN_RANGE,toP=Math.atan2(-dz,dx),pdx=car.x-e.x,pdz=car.z-e.z,pd=Math.hypot(pdx,pdz); // target: player or a convoy truck
   // knockback from bashes/rams, and a stun that stops it driving and firing
   e.x+=e.kx*dt;e.z+=e.kz*dt;const kd=Math.exp(-dt*4);e.kx*=kd;e.kz*=kd;e.stun=Math.max(0,e.stun-dt);

@@ -4,8 +4,8 @@
 // ---------- Aiming: artillery turret + predicted impact marker ----------
 // FIRE per mode: [muzzle speed, blast power]. Blast radius on targets is 2.3*power (see explode).
 // Buggy: steady, punchy rounds. Artillery: heavy shells (also structural hits on buildings, see structHit). Mech: rapid fire.
-const FIRE=[[30,.9],[24,2.4],[34,.7]],RELOAD=[.6,2.4,.2];let reloadT=0;
-const AIM={yaw:0,elev:.25,k:0},ELEV_MIN=.03,ELEV_MAX=1.45,YAW_MAX=PI*.75;
+const FIRE=[[30,.9],[37,2.4],[34,.7]],RELOAD=[.6,2.4,.2];let reloadT=0;
+const AIM={yaw:0,elev:.25,k:0},ELEV_MIN=-.08,ELEV_MAX=1.45,ART_MIN=10; // the artillery turret traverses all the way round
 const pivArtPose=parts.find(pt=>pt.o===piv).po[1];
 const impactP=new THREE.Vector3();
 // owner: 'player' or the enemy that fired; a shell never hits its own shooter
@@ -36,11 +36,11 @@ const TURRET={0:{yaw:2.1,lo:-.25,hi:.8,rate:6},2:{yaw:.6,lo:-.35,hi:.6,rate:3}};
 const GA={yaw:0,elev:0,k:0,fresh:true},ray=new THREE.Raycaster(),aimPt=new THREE.Vector3(),_pv=new THREE.Vector3(),_d=new THREE.Vector3();
 const pivPoses=parts.find(pt=>pt.o===piv).po;
 const _cp=new THREE.Vector3();
-function cursorPoint(){if(!mouseIn)return false;ray.setFromCamera(mouse,cam);const o=ray.ray.origin,d=ray.ray.direction;
-  let best=160;const hit=ray.intersectObjects(targets.concat(enemies.filter(e=>!e.dead).map(e=>e.g),solidPieces().filter(p=>p.g).map(p=>p.g[p.state])),true)[0];if(hit)best=hit.distance; // buildings: checked in the march below
+function cursorPoint(maxD=160){if(!mouseIn)return false;ray.setFromCamera(mouse,cam);const o=ray.ray.origin,d=ray.ray.direction;
+  let best=maxD;const hit=ray.intersectObjects(targets.concat(enemies.filter(e=>!e.dead).map(e=>e.g),solidPieces().filter(p=>p.g).map(p=>p.g[p.state])),true)[0];if(hit)best=hit.distance; // buildings: checked in the march below
   for(let t=1;t<best;t+=.4){const x=o.x+d.x*t,z=o.z+d.z*t,y=o.y+d.y*t;if(y<gh(x,z)){best=t-.2;break}
     _cp.set(x,y,z);if(piecesNear(x,z,.3).some(pc=>pc.bld&&pieceHitShot(pc,_cp))){best=t-.2;break}} // march the heightfield and building panels
-  aimPt.copy(o).addScaledVector(d,best);if(best>=160)aimPt.y=gh(aimPt.x,aimPt.z); // aiming at sky: use the far ground point
+  aimPt.copy(o).addScaledVector(d,best);if(best>=maxD)aimPt.y=gh(aimPt.x,aimPt.z); // aiming at sky: use the far ground point
   return true}
 // Ballistic solve: the hull-space gun yaw/elevation that lands a shell of speed v on `target`.
 // high=true picks the lobbing arc. Solves from the pivot, then re-solves from the estimated muzzle position
@@ -61,7 +61,7 @@ function gunAim(dt){
   const s=T.rate*dt;let dyaw=ty-GA.yaw;dyaw=Math.atan2(Math.sin(dyaw),Math.cos(dyaw));
   GA.yaw+=Math.max(-s,Math.min(s,dyaw));GA.elev+=Math.max(-s,Math.min(s,te-GA.elev));
   piv.rotation.y=L(pp.r[1],GA.yaw,GA.k);piv.rotation.z=L(pp.r[2],GA.elev,GA.k)}
-// Red target marker for an artillery click: bracket corners around a centre dot
+// Red target marker: where the artillery aims when it aims from the rig (the drone shows its laser dot instead): bracket corners around a centre dot
 const tgtM=new THREE.MeshBasicMaterial({color:0xE5533D,transparent:true,opacity:.9,depthWrite:false,side:THREE.DoubleSide});
 const tgtMark=new THREE.Group();tgtMark.visible=false;sc.add(tgtMark);
 tgtMark.add(new THREE.Mesh(new THREE.CircleGeometry(.18,16).rotateX(-PI/2),tgtM));
@@ -69,29 +69,32 @@ tgtMark.add(new THREE.Mesh(new THREE.CircleGeometry(.18,16).rotateX(-PI/2),tgtM)
   const m1=new THREE.Mesh(new THREE.PlaneGeometry(.7,.09).rotateX(-PI/2),tgtM);m1.position.set(1.15,.02,-.3);c.add(m1);
   const m2=new THREE.Mesh(new THREE.PlaneGeometry(.09,.7).rotateX(-PI/2),tgtM);m2.position.set(1.46,.02,0);c.add(m2)});
 let lastSt='';
+// Artillery live aim: the turret follows the drone's laser (or the cursor seen from the rig while the drone is away),
+// leading a painted enemy. Click/Space queues a shot (AIM.pending) that fires once the gun is laid and loaded. Shift = high arc.
 function aimTick(dt){
-  const active=mode===1&&!run;AIM.k=active?Math.min(1,AIM.k+dt*2.5):0;
-  let lockInfo='';
-  if(active){const fine=held('ShiftLeft','ShiftRight')?.25:1;
-    const e=(held('KeyW','ArrowUp')?1:0)-(held('KeyS','ArrowDown')?1:0),t=(held('KeyA','ArrowLeft')?1:0)-(held('KeyD','ArrowRight')?1:0);
-    if(e||t)AIM.lock=null; // manual adjustment cancels a click target
-    if(AIM.lock){ // slew toward the clicked spot, then fire once aligned and loaded
-      let s=solveHull(AIM.lock,FIRE[1][0],AIM.high),arcName=AIM.high?'high arc':'direct';
-      if(AIM.high&&s.elev>ELEV_MAX){s=solveHull(AIM.lock,FIRE[1][0],false);arcName='direct (too close to lob)'}
-      const ty=Math.max(-YAW_MAX,Math.min(YAW_MAX,s.yaw)),te=Math.max(ELEV_MIN,Math.min(ELEV_MAX,s.elev));
-      const ys=1.3*dt,es=.8*dt;let dy=ty-AIM.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));
-      AIM.yaw+=Math.max(-ys,Math.min(ys,dy));AIM.elev+=Math.max(-es,Math.min(es,te-AIM.elev));
-      const aligned=Math.abs(ty-AIM.yaw)<.004&&Math.abs(te-AIM.elev)<.004&&AIM.k>=1,canHit=s.ok&&ty===s.yaw;
-      if(AIM.pending&&aligned&&canHit&&reloadT<=0){AIM.pending=false;fire()}
-      lockInfo=` · target ${Math.round(Math.hypot(AIM.lock.x-car.x,AIM.lock.z-car.z))} m, ${arcName}, `+(!s.ok?'out of range':ty!==s.yaw?'outside traverse':!aligned?'laying gun…':AIM.pending?'firing when loaded':'on target');
-    }else{AIM.elev=Math.max(ELEV_MIN,Math.min(ELEV_MAX,AIM.elev+e*.45*fine*dt));AIM.yaw=Math.max(-YAW_MAX,Math.min(YAW_MAX,AIM.yaw+t*.9*fine*dt))}
+  const active=mode===1&&!run;AIM.k=active?Math.min(1,AIM.k+dt*2.5):0;if(!active)AIM.pending=false;
+  DR.has=false;DR.info='';DR.ok=false;let note='';
+  if(active){const high=held('ShiftLeft','ShiftRight');
+    if(droneView())DR.has=droneLaser();else if(cursorPoint()){DR.tgt=null;DR.laser.copy(aimPt);DR.aim.copy(aimPt);DR.has=true}
+    if(DR.has){if(DR.tgt)leadAim(high);
+      let s=solveHull(DR.aim,FIRE[1][0],high),arcName=high?'high arc':'flat';
+      if(high&&s.elev>ELEV_MAX){s=solveHull(DR.aim,FIRE[1][0],false);arcName='flat'}
+      const te=Math.max(ELEV_MIN,Math.min(ELEV_MAX,s.elev)),ys=2.6*dt,es=1.6*dt;
+      let dy=s.yaw-AIM.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));AIM.yaw+=Math.max(-ys,Math.min(ys,dy));AIM.yaw=Math.atan2(Math.sin(AIM.yaw),Math.cos(AIM.yaw));
+      AIM.elev+=Math.max(-es,Math.min(es,te-AIM.elev));
+      dy=s.yaw-AIM.yaw;dy=Math.atan2(Math.sin(dy),Math.cos(dy));
+      const aligned=Math.abs(dy)<.005&&Math.abs(te-AIM.elev)<.003&&AIM.k>=1;const dist=Math.round(Math.hypot(DR.aim.x-car.x,DR.aim.z-car.z)),close=dist<ART_MIN; /* too close: the blast would reach the rig */DR.ok=s.ok&&!close&&s.elev>=ELEV_MIN&&s.elev<=ELEV_MAX;const tf=dist/Math.max(1,FIRE[1][0]*Math.cos(s.elev));
+      DR.info=close?'TOO CLOSE · '+dist+' m':!DR.ok?'OUT OF RANGE · '+dist+' m':(DR.tgt?'LOCKED · ':'')+dist+' m · '+tf.toFixed(1)+' s '+arcName+(reloadT>0?' · loading':AIM.pending?' · laying':'');
+      if(AIM.pending&&aligned&&DR.ok&&reloadT<=0){AIM.pending=false;fire()}
+      note=close?' · too close':!DR.ok?' · out of range':AIM.pending?' · shot queued':''}
     piv.rotation.y=L(pivArtPose.r[1],AIM.yaw,AIM.k);piv.rotation.z=L(pivArtPose.r[2],AIM.elev,AIM.k)}
-  else AIM.lock=null;
-  tgtMark.visible=!!AIM.lock;if(AIM.lock){tgtMark.position.copy(AIM.lock);tgtMark.rotation.y+=dt*.8}
+  tgtMark.visible=active&&DR.has&&!droneView();if(tgtMark.visible){tgtMark.position.copy(DR.laser);tgtMark.position.y+=.06;tgtMark.rotation.y+=dt*.8;tgtM.color.setHex(DR.ok?0xE5533D:0x8a8a8a)}
+  if(active){const how=droneView()?'Drone: WASD fly, Q/E or right-drag turn, scroll altitude':DR.state==='down'?'Drone rebuilding '+Math.ceil(DR.rebuildT)+' s · aiming from the rig':DR.state==='fall'?'Drone hit!':'Drone launching…';
+    const s='Artillery · '+how+' · click to fire, hold Shift for a high arc'+(reloadT>0?' · reloading':'')+note;
+    if(s!==lastSt){st.textContent=lastSt=s}}else lastSt='';
   gunAim(dt);
   arc.visible=marker.visible=false;if(run||!predict())return;
   marker.visible=true;arc.visible=mode===1;marker.position.copy(impactP);blastRing.scale.setScalar(2.3*FIRE[mode][1]);
   const ready=reloadT<=0,pulse=.85+.15*Math.sin(clock*7);
   ringM.color.setHex(ready?0xFFB347:0x9A8F80);ringM.opacity=(mode===1?.85:.4)*(ready?pulse:.5);arc.material.opacity=ready?.6:.2;
-  if(active){const s=`Artillery · range ${Math.round(Math.hypot(impactP.x-car.x,impactP.z-car.z))} m · elev ${Math.round(AIM.elev*180/PI)}° · traverse ${Math.round(AIM.yaw*180/PI)}°${ready?'':' · reloading'}${lockInfo||' · click ground to target (Shift-click: direct fire), W/S/A/D adjust'}`;
-    if(s!==lastSt){st.textContent=lastSt=s}}else lastSt=''}
+}

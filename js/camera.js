@@ -10,12 +10,13 @@ const setMouse=e=>{const r=cv.getBoundingClientRect();mouse.set((e.clientX-r.lef
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 cv.addEventListener('pointerdown',e=>{setMouse(e);cv.setPointerCapture(e.pointerId);
   if(e.button===0){if(audio())engine();
-    if(mode===1&&!run){if(cursorPoint()){AIM.lock=aimPt.clone();AIM.lock.y=Math.max(AIM.lock.y,gh(aimPt.x,aimPt.z))+.06;AIM.high=!e.shiftKey;AIM.pending=true}} // artillery: click a spot to target it
+    if(mode===1&&!run)AIM.pending=true; // artillery: queue a shot at the laser / cursor (fires once laid and loaded)
     else{firing=true;fire()}}
   else{drag={x:e.clientX,y:e.clientY};cv.style.cursor='grabbing'}});
-cv.addEventListener('pointermove',e=>{setMouse(e);if(!drag)return;lookOff-=(e.clientX-drag.x)*.008;lookEl=Math.max(-.25,Math.min(.9,lookEl+(e.clientY-drag.y)*.006));lookIdle=0;drag={x:e.clientX,y:e.clientY}});
+cv.addEventListener('pointermove',e=>{setMouse(e);if(!drag)return;if(droneView()){DR.h-=(e.clientX-drag.x)*.006;drag={x:e.clientX,y:e.clientY};return} // drone: drag turns it
+  lookOff-=(e.clientX-drag.x)*.008;lookEl=Math.max(-.25,Math.min(.9,lookEl+(e.clientY-drag.y)*.006));lookIdle=0;drag={x:e.clientX,y:e.clientY}});
 cv.addEventListener('pointerup',e=>{if(e.button===0)firing=false;else{drag=null;cv.style.cursor='crosshair'}});
 cv.addEventListener('pointerleave',()=>{if(!drag)mouseIn=false});
 window.addEventListener('blur',()=>{firing=false;drag=null});
-cv.addEventListener('wheel',e=>{e.preventDefault();zoom=Math.max(.5,Math.min(2.2,zoom+e.deltaY*.001))},{passive:false});
+cv.addEventListener('wheel',e=>{e.preventDefault();if(droneView()){DR.alt=Math.max(DRONE.alt[0],Math.min(DRONE.alt[1],DR.alt+e.deltaY*.02));return}zoom=Math.max(.5,Math.min(2.2,zoom+e.deltaY*.001))},{passive:false});
 sc.add(sun.target);
