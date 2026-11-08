@@ -47,9 +47,11 @@ function launchDrone(){sc.attach(drone);drone.getWorldPosition(DR.p);DR.h=car.h+
 function downDrone(){DR.state='fall';DR.t=0;DR.v.y=Math.min(DR.v.y,2);toast('Drone down! Rebuilding…',2.5)}
 function hurtDrone(d){if(!droneUp())return;DR.hp-=d;sparks(DR.p.clone(),6);trauma=Math.min(1,trauma+.15*DR.k);if(DR.hp<=0)downDrone()}
 
-// Rotor buzz (synth, follows flight speed)
+// Rotor sound: the recorded hover loop (sfx/drone.mp3), placed in the world; synth buzz until it has decoded
 let droneSnd=null;
-function droneSound(on,spd){if(!AC)return;if(!droneSnd){if(!on)return;const o=AC.createOscillator(),o2=AC.createOscillator(),f=AC.createBiquadFilter(),g=AC.createGain();
+function droneSound(on,spd){if(!AC)return;
+  if(SFX.drone){const s=spot(DR.p,.04);loopSnd('drone',on?Math.min(1.1,1.3*s.a):0,.95+Math.min(.15,spd*.008),s.pan);if(droneSnd)droneSnd.g.gain.setTargetAtTime(0,AC.currentTime,.1);return}
+  if(!droneSnd){if(!on)return;const o=AC.createOscillator(),o2=AC.createOscillator(),f=AC.createBiquadFilter(),g=AC.createGain();
   o.type=o2.type='sawtooth';f.type='bandpass';f.frequency.value=1100;f.Q.value=.8;g.gain.value=0;o.connect(f);o2.connect(f);f.connect(g);g.connect(master);o.start();o2.start();droneSnd={o,o2,g}}
   const t=AC.currentTime,hz=150+spd*4;droneSnd.o.frequency.setTargetAtTime(hz,t,.1);droneSnd.o2.frequency.setTargetAtTime(hz*1.013,t,.1);
   droneSnd.g.gain.setTargetAtTime(on&&soundOn?.022+.012*DR.k:0,t,.12)}
