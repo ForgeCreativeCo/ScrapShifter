@@ -66,7 +66,8 @@ function enemyFire(e){const p=new THREE.Vector3();e.muz.getWorldPosition(p);e.bp
   const hit=simShell(p,v,e);if(hit){const w=new THREE.Mesh(warnGeo,new THREE.MeshBasicMaterial({color:0xE5533D,transparent:true,opacity:.6,depthWrite:false,side:THREE.DoubleSide}));w.position.copy(hit);w.position.y=Math.max(hit.y,gh(hit.x,hit.z))+.07;w.scale.setScalar((2.3*EN_SHELL.pw+1.2)/1.9);sc.add(w);sh.warn=w}
   const fl=S(puffT,0xFFC070,true,1,1.4);fl.position.copy(p);addFx(fl,.12,(f,k)=>{fl.material.opacity=1-k;fl.scale.setScalar(1.4+k*1.5)});
   for(let i=0;i<4;i++)smoke(p.clone(),v.clone().multiplyScalar(rnd(.05,.15)),0x8C857A,.3,1.6,rnd(1.2,2),.5);
-  if(audio()){const d=cam.position.distanceTo(p),t=AC.currentTime+d/343,a=1/(1+d*.04);nz(t,.2,7000,900,.5*a);th(t,140,40,.3,.55*a)}}
+  if(audio()){const s=spot(p,.04),[off]=sfxPick(SFX_CUT.tank); // crawler gun: a smaller, higher tank shot
+    if(!sfx('tank-shot',{t:s.t,off,dur:1.5,fade:.7,vol:.6*s.a,rate:rnd(1.3,1.45),pan:s.pan,lp:s.lp})){const t=s.t,a=s.a;nz(t,.2,7000,900,.5*a);th(t,140,40,.3,.55*a)}}}
 function pushOut(o,cx,cz,m){const dx=o.x-cx,dz=o.z-cz,d=Math.hypot(dx,dz);if(d<m&&d>1e-4){o.x+=dx/d*(m-d);o.z+=dz/d*(m-d);return true}return false}
 function enemyTick(e,dt){
   if(e.dead){e.deadT+=dt;if(e.deadT>14)e.g.position.y-=dt*.3;if(e.deadT>20)removeEnemy(e);return}

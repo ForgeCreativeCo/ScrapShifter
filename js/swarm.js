@@ -75,7 +75,7 @@ function nestShotHit(sp){for(const n of nests){if(n.dead)continue;const dx=sp.x-
 function nestBash(c){let hits=0;nests.forEach(n=>{if(!n.dead&&Math.hypot(c.x-n.x,c.z-n.z)<NEST.coreR+SMASH_R+.4&&Math.abs(car.y-n.y)<3){nestDamage(n,NEST.bash);hits++}});return hits}
 function killNest(n){n.hp=0;n.dead=true;n.deadT=0;const c=nestCore(n);explode(c.clone(),1.4);
   let k=0;addFx(null,2.2,(f,t)=>{if(t*6>k){k++;const q=c.clone().add(new THREE.Vector3(rnd(-1.5,1.5),rnd(-.5,2),rnd(-1.5,1.5)));for(let i=0;i<5;i++)fireball(q.clone(),new THREE.Vector3(rnd(-3,3),rnd(1,4),rnd(-3,3)),rnd(.8,1.3),rnd(2.5,4),rnd(.5,.9));
-    boomSnd(1,cam.position.distanceTo(q))}});
+    boomSnd(1,q)}});
   n.core.material=charM;n.arms.forEach(a=>a.traverse(o=>{if(o.isMesh)o.material=charM}));
   n.skin.forEach(it=>{if(it.im.material===nestLampM){it.im.setMatrixAt(it.k,_nz);it.im.instanceMatrix.needsUpdate=true;it.hid=true}});
   nestDown(n)} // mission bookkeeping (js/mission.js)

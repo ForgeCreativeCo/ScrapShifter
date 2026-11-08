@@ -14,7 +14,7 @@ let gaitU=0,gaitW=0,ikK=0,stepBob=0,runK=0;const G={S:1.7,D:.55,H:.45,C:.3};
 function footfall(leg,w){const p=new THREE.Vector3();leg.ft.o.getWorldPosition(p);p.y=gh(p.x,p.z)+.1;const r=1+runK;
   trauma=Math.min(1,trauma+TUNE.shake*w*r);
   for(let i=0;i<Math.round(7*r);i++){const a=Math.random()*6.28,s=rnd(1.2,2.6)*r;smoke(p.clone().add(new THREE.Vector3(Math.cos(a)*.35,0,Math.sin(a)*.35)),new THREE.Vector3(Math.cos(a)*s,rnd(.1,.5),Math.sin(a)*s),0x8A7A60,.35,rnd(1.2,1.9)*(1+runK*.4),rnd(.8,1.4),.4*w)}
-  if(audio()){const t=AC.currentTime;th(t,75+runK*15,28,.3,Math.min(1,.6*w*(1+runK*.4)));nz(t,.35,700+runK*500,60,.45*w);nz(t+.02,.12,2400,900,.15*w*r,'bandpass')}}
+  if(audio()){const t=AC.currentTime;if(sfx('mech-step',{off:.03,vol:Math.min(1.4,.8*w*(1+runK*.45)),rate:rnd(.93,1.03)-runK*.05}))return;th(t,75+runK*15,28,.3,Math.min(1,.6*w*(1+runK*.4)));nz(t,.35,700+runK*500,60,.45*w);nz(t+.02,.12,2400,900,.15*w*r,'bandpass')}}
 function gait(dt,moved,turn){
   const active=mode===2&&!run;ikK=active?Math.min(1,ikK+dt*3):0;
   if(!active){gaitW=0;stepBob=0;runK=0;return}

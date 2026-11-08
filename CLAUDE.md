@@ -29,7 +29,8 @@ three.js r128 from cdnjs, no build step. Open `index.html` directly in a browser
 | `js/townplan.js` | modern town generator (`townPlan`, grid constants `TP`), `townHeight`, painted ground texture (`paintTownGround`) |
 | `js/maps.js` | map definitions (`MAPS`, active `MAP`, `HALF`/`PLAY` bounds); pick with `?map=test` / `?map=town` or the Map dropdown |
 | `js/render.js` | sky shader (baked into a cube map), sky-baked environment lighting (PMREM), shadow setup, post-processing chain, Graphics High/Medium/Low and auto resolution (`GFX`, `renderFrame`) |
-| `js/audio.js` | Web Audio synth (`audio`, `nz`, `th`, boom/fire sounds) |
+| `js/sfxdata.js` | generated: `sfx/*.mp3` as base64 (`SFX_DATA`), so samples load from `file://`. Rebuild with `node tools/pack-sfx.js` |
+| `js/audio.js` | Web Audio: recorded samples (`sfx`, `SFX_CUT` slices, `spot` for delay/pan/muffling, `loopSnd`/`sfxTick` loops) with synth fallbacks (`nz`, `th`), boom/fire sounds |
 | `js/world.js` | chunked heightfield terrain (`gh`, `crater`, `editGround`), seeded scenery + `solids` colliders, test-map `targets` |
 | `js/props.js` | town street furniture and countryside, instanced: trees, lamp posts, parked cars, fountain, rocks, tree-line boundary; adds `solids` |
 | `js/vehicle.js` | vehicle parts and per-mode poses (`parts`, `root`, `piv`, `gun`, `muz`) |
@@ -56,7 +57,7 @@ three.js r128 from cdnjs, no build step. Open `index.html` directly in a browser
 - Maps (`js/maps.js`): `test` is the 120 m field with the target gallery. `town` is the real battle map: a modern town, 360 m. Blue sky dome (`MAP.sky`: colors, sun, hemisphere light). The ground is one painted 4096² texture across the whole map (asphalt with lane lines, sidewalks and curbs, zebra crossings, paved lots, lawns, meadow), so craters dent and scorch roads too. A 44 m street grid (16 m streets) covers ±110 m: central plaza with fountain; downtown ring of glass/concrete towers (5–8 floors) and mid-rises; outer ring of 1–3 floor stucco/brick/concrete buildings around lawns. Street trees, lamp posts, parked cars and a few concrete jersey barriers line the streets. Grassy wooded hills outside, a tree line at the edge, and a highway in from the west (start at x=-150 on z=22).
 - Destructible targets break into physics-ish chunks.
 - Effects: sprite fireballs, lingering smoke, dust surge, embers, slow-mo on big hits, trauma-based camera shake.
-- Sound is synthesized with Web Audio (no audio files).
+- Sound: recorded effects in `sfx/` (see `sfx/SOURCES.md` for what plays where) are packed into `js/sfxdata.js` and decoded when the AudioContext starts; until then, or if decoding fails, the synthesized versions play. World sounds arrive at the speed of sound, pan by camera direction and get muffled with distance (`spot`). Loops: artillery turret motor while the gun moves, crawler treads by distance and speed. Building collapses are the B explosion slowed down. The player engine, clanks, fire crackle, honks and pickups are still synthesized.
 - Driving: WASD/arrows. Buggy is fast and can't turn in place; mech walks slowly and turns in place; artillery is planted (A/D traverses slowly). Transforming bleeds off speed. Vehicle follows terrain slope, collides with scenery (`solids`) and targets.
 - Mech walk: procedural gait driven by distance actually moved, so planted feet don't slide. Two-bone IK legs (knees bend forward, wheel knee guards ride the knee), body dips on each footfall and sways side to side, and the mech lurches forward mid-stride. Each footfall plays a thud, kicks up a dust ring and adds a small camera shake. Hold Shift to run: stride, step height and foot-down time blend from walk to run values by speed (run has a flight phase), footfalls hit harder, turning widens, and the camera pulls back.
 - All gait values live in `TUNE` (defaults in `TUNE_DEF`). The Tune panel (T) edits them live and saves to localStorage; "Copy values" gives JSON to bake back into `TUNE_DEF`.
@@ -102,4 +103,4 @@ three.js r128 from cdnjs, no build step. Open `index.html` directly in a browser
 4. ~~Simple enemy target that moves and shoots back~~ (done: crawlers).
 5. ~~Split the single file into modules~~ (done: classic scripts in `js/`; move to ES modules + a bundler such as Vite when multiplayer needs real tooling).
 6. ~~Game premise and run loop~~ (done: swarm foundries, rubble feeding, convoy, extraction, salvage and garage upgrades).
-7. Ideas next: more maps/towns per run (seeded `townPlan`), foundry variety (armored, mobile), a minimap, replacing synth sounds with recorded ones, co-op.
+7. Ideas next: more maps/towns per run (seeded `townPlan`), foundry variety (armored, mobile), a minimap, recorded sounds for the remaining synth effects (engine, impacts, fire), co-op.

@@ -111,7 +111,8 @@ function collapseFrom(B,f){if(typeof swarmCollapse==='function')swarmCollapse(B,
   for(let i=0;i<20+floorsDown*10;i++){const a=Math.random()*6.28,sp=rnd(3,7),q=new THREE.Vector3(B.x+Math.cos(a)*B.W*.4,cy+rnd(.5,3),B.z+Math.sin(a)*B.D*.4);
     smoke(q,new THREE.Vector3(Math.cos(a)*sp,rnd(.5,2),Math.sin(a)*sp),0x8A7A60,1,rnd(4.5,7),rnd(4,7),.6,rnd(0,.4))}
   const o=new THREE.Vector3(B.x,cy,B.z),d=cam.position.distanceTo(o);trauma=Math.min(1,trauma+.7/(1+d*.03));if(d<30)slowT=.12;
-  if(audio()){const t=AC.currentTime+d/343,a=1/(1+d*.025);nz(t,2.6,900,40,.95*a);th(t,45,18,2.2,.9*a);nz(t+.1,1.2,3000,300,.35*a,'bandpass');nz(t+.5,1.8,600,40,.6*a)}}
+  if(audio()){const s=spot(o,.025),t=s.t,a=s.a;if(sfx('explosion-b',{t,off:.1,vol:1.2*a,rate:rnd(.66,.76),pan:s.pan,lp:Math.min(s.lp,6000)})){th(t,45,18,2.2,.7*a);return} // slowed blast = rumbling collapse
+    nz(t,2.6,900,40,.95*a);th(t,45,18,2.2,.9*a);nz(t+.1,1.2,3000,300,.35*a,'bandpass');nz(t+.5,1.8,600,40,.6*a)}}
 const B_box=(w,h,d)=>new THREE.BoxGeometry(w,h,d);
 // Artillery structural hits. Every heavy shell that lands on or near a building hits its frame: full ART_STRUCT
 // within 4 m of what's left of the building, fading to nothing at 10 m. Structural HP = STRUCT_BASE + modules × floors × STRUCT_PER,

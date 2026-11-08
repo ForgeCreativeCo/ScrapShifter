@@ -5,11 +5,11 @@
 let mode=0,prev=0,T=9,run=false,lift=0,liftF=0,rec=0,mf=0,lookY=1.2;const LIFT=[0,.4,0],LOOK=[1.2,1.4,2.8],shots=[];let last=performance.now(),clock=0;
 const TXT=['Buggy mode. WASD to drive, mouse aims, click to fire.','Artillery mode. Planted, long range.','Mech mode. WASD walk, Shift run (rams through stuff), F shield bash, click to fire. Shield blocks hits from the front.'];
 const modeBtns=document.querySelectorAll('button[data-m]');let camPull=1;const _camA=new THREE.Vector3(),_camP=new THREE.Vector3();
-function setMode(m){if(pl.dead||(m===mode&&!run))return;prev=mode;mode=m;modeBtns.forEach(b=>b.classList.toggle('on',+b.dataset.m===m));parts.forEach(pt=>{const o=pt.o;pt.f={p:o.position.toArray(),r:[o.rotation.x,o.rotation.y,o.rotation.z],s:o.scale.toArray()}});liftF=lift;T=0;run=true;st.textContent='Transforming…';if(audio()){const t=AC.currentTime;for(let i=0;i<6;i++){nz(t+i*.12,.12,3000,800,.25,'bandpass');th(t+i*.12,rnd(300,500),rnd(80,150),.1,.15)}}}
+function setMode(m){if(pl.dead||(m===mode&&!run))return;prev=mode;mode=m;modeBtns.forEach(b=>b.classList.toggle('on',+b.dataset.m===m));parts.forEach(pt=>{const o=pt.o;pt.f={p:o.position.toArray(),r:[o.rotation.x,o.rotation.y,o.rotation.z],s:o.scale.toArray()}});liftF=lift;T=0;run=true;st.textContent='Transforming…';if(audio()){const t=AC.currentTime;if(sfx(m===2||prev===2?'transform-a':'transform-b',{vol:.85,rate:rnd(.97,1.03)}))return;for(let i=0;i<6;i++){nz(t+i*.12,.12,3000,800,.25,'bandpass');th(t+i*.12,rnd(300,500),rnd(80,150),.1,.15)}}}
 const mflash=S(puffT,0xFFD27A,true,0,1);sc.add(mflash);
 function loop(now){const rdt=Math.min(.05,(now-last)/1000);last=now;clock+=rdt;let ts=1;if(slowT>0){slowT-=rdt;ts=.18}if(MS.overlay)ts=0;/* briefing/garage pauses the game */const dt=rdt*ts;
 if(run){T+=dt;let done=true;const n=parts.length,fwd=mode===2||(mode===1&&prev===0);parts.forEach((pt,i)=>{const d=(fwd?i:n-1-i)*.035;const k=ss(cl((T-d)/.55));if(k<1)done=false;apply(pt,pt.f,pt.po[mode],k)});lift=L(liftF,LIFT[mode],ss(cl(T/.7)));if(done){run=false;st.textContent=TXT[mode]}}
-const {fx:hx,fz:hz}=drive(dt);engineTick();
+const {fx:hx,fz:hz}=drive(dt);engineTick();sfxTick(dt);
 rec*=Math.exp(-dt*7);gun.position.x=-rec*.45;
 const kick=rec*(mode===1?0:.15),bob=(stepBob-G.C)*ikK,sway=mode===2?TUNE.sway*gaitW*ikK*Math.sin(2*PI*gaitU):0;
 pl.slump+=((pl.dead?1:0)-pl.slump)*Math.min(1,dt*3); // wrecked: sag and list to one side
