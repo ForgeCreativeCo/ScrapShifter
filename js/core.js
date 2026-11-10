@@ -14,6 +14,7 @@ const hemi=new THREE.HemisphereLight(0xD8C8A8,0x3A3428,.75);sc.add(hemi); // map
 const sun=new THREE.DirectionalLight(0xFFD9A8,1.7);sun.position.set(10,12,8);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-24,right:24,top:24,bottom:-24});sun.shadow.bias=-.0005;sc.add(sun);
 const flashL=new THREE.PointLight(0xFF8A3A,0,40,2);sc.add(flashL);
 const muzL=new THREE.PointLight(0xFFC870,0,14,2);sc.add(muzL);
+let rigLamp=null; // night maps: the rig's work light, carried just ahead of it (made in maps.js, moved in main.js)
 
 // ---------- Procedural textures ----------
 function tex(w,h,draw,rep){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.encoding=THREE.sRGBEncoding;t.anisotropy=4;if(rep)t.repeat.set(rep,rep);return t}
@@ -54,6 +55,9 @@ function rng(seed){return()=>{seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>
 // build(). After build, writes go straight to the right tile and flag its upload, so callers' own
 // `instanceMatrix/instanceColor.needsUpdate=true` lines are harmless no-ops. Tile spheres come from the initial
 // matrices; later edits (hiding with a zero scale, sagging a wreck) only shrink instances, so they stay valid.
+// tileCull(far), once a frame, also hides tiles that lie wholly beyond the fog, which the frustum alone would still draw.
+const instTiles=[];
+function tileCull(far){const p=cam.position;for(const t of instTiles){const s=t.geometry.boundingSphere;t.visible=Math.hypot(s.center.x-p.x,s.center.z-p.z)-s.radius<far}}
 const INST_TILE=64,_tiS=new THREE.Sphere(),_tiB=new THREE.Box3(),_tiB2=new THREE.Box3(),_tiM=new THREE.Matrix4();
 class TiledInst{
   constructor(geo,mat,n,shadow=true){this.geo=geo;this.mat=mat;this.count=n;this.shadow=shadow;this.mats=new Float32Array(n*16);this.cols=null;
@@ -70,5 +74,5 @@ class TiledInst{
         _tiS.copy(g0.boundingSphere).applyMatrix4(_tiM);_tiB.union(_tiS.getBoundingBox(_tiB2));if(this.cols)im.setColorAt(j,col.fromArray(this.cols,i*3))});
       g.boundingSphere=_tiB.getBoundingSphere(new THREE.Sphere()); // world space; the tile mesh sits at the origin
       im.frustumCulled=true;im.castShadow=this.shadow;im.receiveShadow=true;im.matrixAutoUpdate=false; // InstancedMesh turns culling off by default
-      sc.add(im);this.meshes.push(im)});
+      sc.add(im);this.meshes.push(im);instTiles.push(im)});
     this.mats=this.cols=null;return this}}

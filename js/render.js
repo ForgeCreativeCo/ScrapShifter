@@ -8,17 +8,18 @@
 const SKY=MAP.sky;
 const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,
   uniforms:{top:{value:new THREE.Color(SKY.top)},hor:{value:new THREE.Color(SKY.horizon)},gnd:{value:new THREE.Color(SKY.ground||SKY.fog)},
-    sunDir:{value:new THREE.Vector3(...SKY.sunDir).normalize()},sunCol:{value:new THREE.Color(SKY.sun[0])},cloud:{value:SKY.cloud??.4},time:{value:0}},
+    sunDir:{value:new THREE.Vector3(...SKY.sunDir).normalize()},sunCol:{value:new THREE.Color(SKY.sun[0])},cloud:{value:SKY.cloud??.4},cloudCol:{value:new THREE.Color(SKY.cloudCol??0xffffff).multiplyScalar(SKY.cloudCol?1:1.05)},stars:{value:SKY.stars||0},time:{value:0}},
   vertexShader:`varying vec3 vDir;void main(){vDir=position;vec4 p=projectionMatrix*modelViewMatrix*vec4(position,1.);gl_Position=p.xyww;gl_Position.z*=.99999;}`, // pinned to the far plane
-  fragmentShader:`uniform vec3 top,hor,gnd,sunDir,sunCol;uniform float cloud,time;varying vec3 vDir;
+  fragmentShader:`uniform vec3 top,hor,gnd,sunDir,sunCol;uniform vec3 cloudCol;uniform float cloud,time,stars;varying vec3 vDir;
     float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
     float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
     float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*n(p);p=p*2.03+vec2(1.7,9.2);a*=.5;}return v;}
     void main(){vec3 d=normalize(vDir);float y=d.y;
       vec3 col=y>0.?mix(hor,top,pow(y,.45)):mix(hor,gnd,pow(min(1.,-y*3.),.6));
       float s=max(dot(d,sunDir),0.);col+=sunCol*(pow(s,1200.)*12.+pow(s,40.)*.35+pow(s,5.)*.1);
+      if(stars>0.&&y>0.){vec3 sp=d*150.,sg=floor(sp);float sh=fract(sin(dot(sg,vec3(127.1,311.7,74.7)))*43758.5453);col+=vec3(.8,.86,1.)*stars*step(.9975,sh)*(.5+3.*fract(sh*731.))*smoothstep(.5,.15,length(fract(sp)-.5))*smoothstep(.02,.35,y);}
       if(y>0.){vec2 uv=d.xz/(y+.1)*.9+vec2(time*.006,time*.002);float c=fbm(uv);c=smoothstep(1.-cloud-.12,1.-cloud+.3,c);
-        float lit=smoothstep(.25,.9,fbm(uv*1.3+.4));vec3 cc=mix(hor*.78,vec3(1.)*1.05,lit)+sunCol*pow(s,6.)*.35;col=mix(col,cc,c*smoothstep(0.,.2,y)*.9);}
+        float lit=smoothstep(.25,.9,fbm(uv*1.3+.4));vec3 cc=mix(hor*.78,cloudCol,lit)+sunCol*pow(s,6.)*.35;col=mix(col,cc,c*smoothstep(0.,.2,y)*.9);}
       gl_FragColor=vec4(col,1.);
       #include <tonemapping_fragment>
       #include <encodings_fragment>
@@ -45,7 +46,7 @@ skyFaceTick(true);
 
 // Image-based lighting: bake the sky into an environment map once; the sky now does most of the ambient light
 {const pm=new THREE.PMREMGenerator(R),es=new THREE.Scene();es.add(new THREE.Mesh(new THREE.SphereGeometry(1,48,24),skyMat));
-  sc.environment=pm.fromScene(es,.02).texture;pm.dispose();hemi.intensity*=.3;R.toneMappingExposure=.92}
+  sc.environment=pm.fromScene(es,.02).texture;pm.dispose();hemi.intensity*=.3;R.toneMappingExposure=SKY.exposure??.92}
 // Ordinary surfaces take a softer share of sky light (glossy glass/paint set their own envMapIntensity). Run once
 // everything is built (main.js) and on new materials as they appear.
 function tuneEnv(root=sc){root.traverse(o=>{const ms=o.material?(Array.isArray(o.material)?o.material:[o.material]):[];ms.forEach(m=>{if(m.isMeshStandardMaterial&&!m.userData.envTuned){m.userData.envTuned=true;if(m.envMapIntensity===1)m.envMapIntensity=.5}})})}
@@ -70,7 +71,7 @@ const GRADE={uniforms:{tDiffuse:{value:null},sat:{value:1},con:{value:1},tint:{v
 function setupPost(){if(composer||!THREE.EffectComposer||!THREE.UnrealBloomPass||!THREE.GammaCorrectionShader)return false;
   const sz=R.getDrawingBufferSize(new THREE.Vector2());
   composer=new THREE.EffectComposer(R,new THREE.WebGLRenderTarget(sz.x,sz.y,{type:THREE.HalfFloatType}));composer.addPass(new THREE.RenderPass(sc,cam));
-  bloomPass=new THREE.UnrealBloomPass(new THREE.Vector2(sz.x/2,sz.y/2),.5,.55,.86);composer.addPass(bloomPass);
+  bloomPass=new THREE.UnrealBloomPass(new THREE.Vector2(sz.x/2,sz.y/2),...(SKY.bloom||[.5,.55,.86])); // strength, radius, thresholdcomposer.addPass(bloomPass);
   composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));
   const g=new THREE.ShaderPass(GRADE),G=SKY.grade||{};g.uniforms.sat.value=G.sat??1;g.uniforms.con.value=G.con??1;g.uniforms.vig.value=G.vig??.25;g.uniforms.tint.value.set(...(G.tint||[1,1,1]));composer.addPass(g);
   if(THREE.FXAAShader){fxaaPass=new THREE.ShaderPass(THREE.FXAAShader);composer.addPass(fxaaPass)}sizePost();return true}

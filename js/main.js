@@ -15,7 +15,7 @@ const {fx:hx,fz:hz}=drive(dt);engineTick();sfxTick(dt);musicTick(rdt);
 rec*=Math.exp(-dt*7);gun.position.x=-rec*.45;
 const kick=rec*(mode===1?0:.15),bob=(stepBob-G.C)*ikK,sway=mode===2?TUNE.sway*gaitW*ikK*Math.sin(2*PI*gaitU):0;
 pl.slump+=((pl.dead?1:0)-pl.slump)*Math.min(1,dt*3); // wrecked: sag and list to one side
-root.position.set(car.x-hx*kick,car.y+lift+bob-pl.slump*.35,car.z-hz*kick);
+root.position.set(car.x-hx*kick,car.y+lift+bob-pl.slump*.35,car.z-hz*kick);if(rigLamp){rigLamp.position.set(car.x+hx*4.5,root.position.y+3,car.z+hz*4.5);rigLamp.intensity=pl.dead?0:1.5}
 root.rotation.set(car.roll+sway+pl.slump*.22,car.h,car.pitch+rec*(mode===0?.08:mode===1?.04:.02)-pl.slump*.08);
 poseLegs();smashTick(dt);poseArm();heatTick(dt);carsTick(dt);fireTick(dt);reloadT=Math.max(0,reloadT-dt);gyroTick(dt);droneTick(dt);aimTick(dt);droneHud();turretTick(dt);if(firing&&mode!==1)fire(); // hold to keep firing (artillery: one per click)
 sun.position.set(DR.focus.x+SUN_DIR[0],SUN_DIR[1],DR.focus.z+SUN_DIR[2]);sun.target.position.set(DR.focus.x,0,DR.focus.z); // shadows follow the drone's view while spotting
@@ -47,7 +47,7 @@ const cx=ax+Math.cos(yaw)*Math.cos(camEl)*camR,cz=az+Math.sin(yaw)*Math.cos(camE
   camPull+=(want-camPull)*Math.min(1,rdt*(want<camPull?18:2.5));
   cam.position.set(L(a.x,cx,camPull)+ox,Math.max(gh(L(a.x,cx,camPull),L(a.z,cz,camPull))+.6,L(a.y,cy,camPull))+oy,L(a.z,cz,camPull))}cam.lookAt(tx+ox*.4,ty+oy*.4,tz);
 droneCamera(tx,ty,tz,ox,oy); // spotting: blend to the drone's camera
-terrainLod();renderFrame(rdt);requestAnimationFrame(loop)}
+terrainLod();tileCull(sc.fog.far+4);renderFrame(rdt);requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
 st.textContent=TXT[0]+' Right-drag to look, scroll to zoom.';
 

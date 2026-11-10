@@ -8,14 +8,17 @@ if(MAP.props){(()=>{const P=MAP.props,r=rng(MAP.seed*7+1),m4=new THREE.Matrix4()
   const inst=(geo,mat,list,fn,shadow=true)=>{if(!list.length)return null;const im=new TiledInst(geo,mat,list.length,shadow); // map tiles, culled per tile
     list.forEach((it,i)=>{fn(it,i,im);im.setMatrixAt(i,m4)});return im.build()};
   const put=(x,y,z,rotY,sx,sy,sz)=>m4.compose(V(x,y,z),q.setFromAxisAngle(UP,rotY),V(sx,sy,sz));
-  const okSpot=(x,z,m=2)=>Math.abs(x)<PLAY-m&&Math.abs(z)<PLAY-m&&!(x<-TP.EDGE&&Math.abs(z-TP.HWY_Z)<TP.ROAD/2+3)&&Math.hypot(x-MAP.start.x,z-MAP.start.z)>14&&!layoutNear(x,z);
+  // countryside only: never inside the town square (its streets run right to the corners) or on the highway
+  const onHwy=(x,z,m)=>x<-TP.EDGE+m&&Math.abs(z-TP.HWY_Z)<TP.ROAD/2+m,inTown=(x,z,m)=>Math.max(Math.abs(x),Math.abs(z))<TP.EDGE+m;
+  const okSpot=(x,z,m=2)=>Math.abs(x)<PLAY-m&&Math.abs(z)<PLAY-m&&!inTown(x,z,m+4)&&!onHwy(x,z,m+4)&&Math.hypot(x-MAP.start.x,z-MAP.start.z)>14&&!layoutNear(x,z);
 
   // --- trees: street + park trees from the plan, wooded clusters on the hills, and a two-row tree line at the edge
   const trees=P.trees.slice();
-  for(let i=0;i<80;i++){const a=r()*6.28,d=132+r()*40,cx=Math.cos(a)*d,cz=Math.sin(a)*d,n=4+Math.floor(r()*9);
+  const hillN=(MAP.size*MAP.size-4*TP.EDGE*TP.EDGE)/900; // scatter by countryside area, anywhere outside the town square
+  for(let i=0;i<hillN;i++){const cx=(r()*2-1)*PLAY,cz=(r()*2-1)*PLAY,n=4+Math.floor(r()*9);if(inTown(cx,cz,0))continue;
     for(let k=0;k<n;k++){const x=cx+(r()-.5)*20,z=cz+(r()-.5)*20;if(okSpot(x,z))trees.push({x,z,s:.9+r()*.9})}}
-  const edge=[],e1=HALF-1.3,e2=HALF-2.9;for(let a=-HALF;a<=HALF;a+=3.4)[[a,-e1],[a,e1],[-e1,a],[e1,a],[a+1.7,-e2],[a+1.7,e2],[-e2,a+1.7],[e2,a+1.7]].forEach(([x,z])=>edge.push({x,z,s:1.3+r()*.7}));
-  const allTrees=trees.concat(edge),leafCols=[0x3f6b2a,0x4a7a30,0x557f35,0x36602a,0x5d8a3a].map(c=>new THREE.Color(c));
+  const edge=[],e1=HALF-1.3,e2=HALF-2.9;for(let a=-HALF;a<=HALF;a+=3.4)[[a,-e1],[a,e1],[-e1,a],[e1,a],[a+1.7,-e2],[a+1.7,e2],[-e2,a+1.7],[e2,a+1.7]].forEach(([x,z])=>{if(!onHwy(x,z,5))edge.push({x,z,s:1.3+r()*.7})});
+  const allTrees=trees.concat(edge),leafCols=(MAP.night?[0x183229,0x1c3a2e,0x162d30,0x203626,0x223e36]:[0x3f6b2a,0x4a7a30,0x557f35,0x36602a,0x5d8a3a]).map(c=>new THREE.Color(c));
   inst(new THREE.CylinderGeometry(.14,.22,1,7).translate(0,.5,0),new THREE.MeshStandardMaterial({color:0x5b4532,roughness:.95}),allTrees,(t)=>{const h=2.2*t.s;put(t.x,gh(t.x,t.z),t.z,0,t.s,h,t.s)});
   // canopies: lumpy displaced blobs, darker underneath; street/park trees get a 3-blob cluster, distant ones a single blob
   const leafM=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:.85,normalMap:normalFromCanvas(tex(128,128,(g,w,h)=>{g.fillStyle='#777';g.fillRect(0,0,w,h);for(let i=0;i<900;i++){g.fillStyle=Math.random()<.5?'#fff':'#000';g.beginPath();g.arc(Math.random()*w,Math.random()*h,1+Math.random()*2.5,0,7);g.fill()}}).image,4),normalScale:new THREE.Vector2(.8,.8)});
@@ -24,7 +27,7 @@ if(MAP.props){(()=>{const P=MAP.props,r=rng(MAP.seed*7+1),m4=new THREE.Matrix4()
   trees.forEach(t=>solids.push({x:t.x,z:t.z,r:.45*t.s}));
 
   // --- rocks on the hills
-  const rocks=[];for(let i=0;i<90;i++){const a=r()*6.28,d=130+r()*45,x=Math.cos(a)*d,z=Math.sin(a)*d;if(okSpot(x,z,4))rocks.push({x,z,s:.5+r()*1.4})}
+  const rocks=[];for(let i=0;i<hillN*1.6;i++){const x=(r()*2-1)*PLAY,z=(r()*2-1)*PLAY;if(okSpot(x,z,4))rocks.push({x,z,s:.5+r()*1.4})}
   inst(new THREE.DodecahedronGeometry(1,0),SM(tex(128,128,(g,w,h)=>{g.fillStyle='#8a877f';g.fillRect(0,0,w,h);grime(g,w,h)}),.95,0),rocks,(k)=>{m4.compose(V(k.x,gh(k.x,k.z)+k.s*.35,k.z),q.setFromEuler(new THREE.Euler(r()*3,r()*3,r()*3)),V(k.s*1.3,k.s*.8,k.s))});
   rocks.forEach(k=>solids.push({x:k.x,z:k.z,r:k.s*1.1}));
 
@@ -32,7 +35,8 @@ if(MAP.props){(()=>{const P=MAP.props,r=rng(MAP.seed*7+1),m4=new THREE.Matrix4()
   const L=P.lamps,poleM=new THREE.MeshStandardMaterial({color:0x4b5157,roughness:.5,metalness:.6});
   inst(new THREE.CylinderGeometry(.07,.1,1,8).translate(0,.5,0),poleM,L,l=>put(l.x,gh(l.x,l.z),l.z,0,1,6.6,1));
   inst(new THREE.BoxGeometry(1,1,1),poleM,L,l=>put(l.x+l.ax*.8,gh(l.x,l.z)+6.5,l.z+l.az*.8,l.ax?0:PI/2,1.7,.08,.08));
-  inst(new THREE.BoxGeometry(1,1,1),new THREE.MeshStandardMaterial({color:0xeeeedd,emissive:0x998866,emissiveIntensity:.25}),L,l=>put(l.x+l.ax*1.55,gh(l.x,l.z)+6.4,l.z+l.az*1.55,l.ax?0:PI/2,.55,.14,.28),false);
+  const lampCols=[0xff5ad8,0x3fe6ff,0xb98cff,0xffb060].map(c=>new THREE.Color(c).multiplyScalar(1.5)); // over 1 so the heads bloom
+  inst(new THREE.BoxGeometry(1,1,1),MAP.night?new THREE.MeshBasicMaterial({color:0xffffff}):new THREE.MeshStandardMaterial({color:0xeeeedd,emissive:0x998866,emissiveIntensity:.25}),L,(l,i,im)=>{put(l.x+l.ax*1.55,gh(l.x,l.z)+6.4,l.z+l.az*1.55,l.ax?0:PI/2,.55,.14,.28);if(MAP.night)im.setColorAt(i,lampCols[l.c||0])},false);
   L.forEach(l=>solids.push({x:l.x,z:l.z,r:.25}));
 
   // --- parked cars: body (instance-coloured), glass cabin, four wheels
@@ -46,7 +50,7 @@ if(MAP.props){(()=>{const P=MAP.props,r=rng(MAP.seed*7+1),m4=new THREE.Matrix4()
   C.forEach(c=>[-1.15,1.15].forEach(u=>{const p=along(c,u,0,0);solids.push({x:p.x,z:p.z,r:.95})}));
 
   // --- plaza fountain
-  const stone=SM(tex(128,128,(g,w,h)=>{g.fillStyle='#c9c2b4';g.fillRect(0,0,w,h);grime(g,w,h)}),.8,0),water=new THREE.MeshStandardMaterial({color:0x4f86a8,roughness:.1,metalness:.2,transparent:true,opacity:.85});
+  const stone=SM(tex(128,128,(g,w,h)=>{g.fillStyle='#c9c2b4';g.fillRect(0,0,w,h);grime(g,w,h)}),.8,0),water=new THREE.MeshStandardMaterial({color:0x4f86a8,roughness:.1,metalness:.2,transparent:true,opacity:.85,emissive:0x19e6ff,emissiveIntensity:MAP.night?.9:0});
   P.fountains.forEach(f=>{const y=gh(f.x,f.z);mk(C_(3.4,3.6,.7,28),stone,f.x,y+.35,f.z);mk(C_(3.05,3.05,.12,28),water,f.x,y+.62,f.z);mk(C_(.45,.6,2.4,12),stone,f.x,y+1.2,f.z);mk(C_(1.3,.5,.35,20),stone,f.x,y+2.5,f.z);
     solids.push({x:f.x,z:f.z,r:3.6})});
 })()}

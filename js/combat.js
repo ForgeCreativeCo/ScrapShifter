@@ -62,7 +62,10 @@ function makeEnemy(x,z){const g=new THREE.Group();g.rotation.order='YZX';sc.add(
   const e={g,tur,bp,muz:m,lamp,lampM,bar,x,z,y:gh(x,z),h:Math.random()*6.28,v:0,pitch:0,roll:0,hp:EN_HP,dead:false,deadT:0,flash:0,
     reload:rnd(2,4),tYaw:0,tElev:.1,wp:null,strafe:Math.random()<.5?1:-1,strafeT:rnd(3,7),lead:rnd(.55,.95),kx:0,kz:0,stun:0,rammed:-9,type:'crawler',r:1.5,hh:1.9,maxHp:EN_HP,barY:2.6};
   enemies.push(e);return e}
-function spawnPoint(){let x=0,z=0;for(let i=0;i<20;i++){const a=Math.random()*6.28;x=Math.cos(a)*MAP.spawn.ring;z=Math.sin(a)*MAP.spawn.ring;if(Math.hypot(x-car.x,z-car.z)>MAP.spawn.minDist&&!layoutNear(x,z)&&navReachable(x,z))break}return[x,z]}
+// A reachable point on the map's spawn ring, away from the player: the nearest of the first 4 valid tries, so on a big
+// map units don't start a whole town away
+function spawnPoint(){let x=0,z=0,best=1e9,ok=0;for(let i=0;i<20&&ok<4;i++){const a=Math.random()*6.28,px=Math.cos(a)*MAP.spawn.ring,pz=Math.sin(a)*MAP.spawn.ring,d=Math.hypot(px-car.x,pz-car.z);
+  if(!ok&&i===19){x=px;z=pz}if(d>MAP.spawn.minDist&&!layoutNear(px,pz)&&navReachable(px,pz)){ok++;if(d<best){best=d;x=px;z=pz}}}return[x,z]}
 function spawnEnemy(){makeEnemy(...spawnPoint())}
 function removeEnemy(e){sc.remove(e.g);e.bar.remove();enemies.splice(enemies.indexOf(e),1);if(e.mark){e.mark.el.remove();const i=marks.indexOf(e.mark);if(i>=0)marks.splice(i,1)}}
 function enemyFire(e){const p=new THREE.Vector3();e.muz.getWorldPosition(p);e.bp.getWorldQuaternion(_q);
