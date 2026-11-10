@@ -82,9 +82,10 @@ function convoyTick(dt){if(!trucks.length)return;
   if(trucks.every(t=>t.dead||t.out)){if(RUN.trucksSaved)startExtract();else endRun('lost','The whole convoy was destroyed.')}}
 
 // ---------- Enemy targets: the player or (once the convoy rolls) the nearest truck; bikes go for trucks first
-const PLT={x:0,y:0,z:0,h:0,v:0,pl:true};
+const PLT={x:0,y:0,z:0,h:0,v:0,pl:true},RCT={x:0,y:0,z:0,h:0,v:0,rc:true}; // target proxies: the player rig, the RC bike
 function enemyTarget(e){let best=null,bd=1e9;if(!pl.dead&&!(e.type==='bike'&&gyroAir())){ // bikes can't reach a flying gyro
   PLT.x=car.x;PLT.y=car.y;PLT.z=car.z;PLT.h=car.h;PLT.v=car.v;best=PLT;bd=Math.hypot(car.x-e.x,car.z-e.z)}
+  if(rcOut()){const d=Math.hypot(RC.x-e.x,RC.z-e.z);if(d<bd){bd=d;RCT.x=RC.x;RCT.y=RC.y;RCT.z=RC.z;RCT.h=RC.h;RCT.v=RC.v;best=RCT}} // the RC bike draws fire when it is the nearer one
   if(MS.rolling)for(const t of trucks){if(t.dead||t.out)continue;const d=Math.hypot(t.x-e.x,t.z-e.z)*(e.type==='bike'?.6:.9);if(d<bd){bd=d;best=t}}
   return best}
 

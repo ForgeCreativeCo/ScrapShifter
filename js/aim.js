@@ -14,6 +14,7 @@ function shotHits(sp,owner='player'){if(sp.y<gh(sp.x,sp.z)+.05||Math.abs(sp.x)>H
   for(const pc of piecesNear(sp.x,sp.z,.3))if(pieceHitShot(pc,sp))return true;
   for(const e of enemies)if(!e.dead&&e!==owner&&Math.hypot(sp.x-e.x,sp.z-e.z)<e.r&&sp.y>e.y-.2&&sp.y<e.y+e.hh)return true;
   if(nestShotHit(sp)||truckShotHit(sp))return true; // foundry cores (swarm.js), convoy trucks (mission.js)
+  if(owner!=='player'&&rcShotHit(sp))return true; // the RC bike (rcbike.js)
   if(owner!=='player'&&!pl.dead&&Math.hypot(sp.x-car.x,sp.z-car.z)<(mode===1?1.6:1.3)&&sp.y>car.y-.2&&sp.y<car.y+PL_H[mode])return true;
   return false}
 const ARC_N=240,arcGeo=new THREE.BufferGeometry();arcGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(ARC_N*3),3));
@@ -92,6 +93,7 @@ function aimTick(dt){
   if(active){const how=droneView()?'Drone: WASD fly, Q/E or right-drag turn, scroll altitude':DR.state==='down'?'Drone rebuilding '+Math.ceil(DR.rebuildT)+' s · aiming from the rig':DR.state==='fall'?'Drone hit!':'Drone launching…';
     const s='Artillery · '+how+' · click to fire, hold Shift for a high arc'+(reloadT>0?' · reloading':'')+note;
     if(s!==lastSt){st.textContent=lastSt=s}}else lastSt='';
+  if(rcCtl()){arc.visible=marker.visible=false;return} // driving the RC bike: the rig's gun rests
   gunAim(dt);
   arc.visible=marker.visible=false;if(run||(mode===3&&!gyroAir())||!predict())return;
   marker.visible=true;arc.visible=mode===1||mode===3;marker.position.copy(impactP);blastRing.scale.setScalar(2.3*FIRE[mode][1]);

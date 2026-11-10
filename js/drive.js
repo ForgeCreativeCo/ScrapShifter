@@ -28,7 +28,7 @@ function collide(fx,fz){let n=null;
   if(into>.3&&Math.abs(car.v)>6){trauma=Math.min(1,trauma+.04*Math.abs(car.v));clank(Math.min(1,Math.abs(car.v)/15));car.v*=-.2}
   else car.v*=.92}
 function drive(dt){
-  const f=pl.dead?0:(held('KeyW','ArrowUp')?1:0)-(held('KeyS','ArrowDown')?1:0),t=pl.dead?0:(held('KeyA','ArrowLeft')?1:0)-(held('KeyD','ArrowRight')?1:0);
+  const idle=pl.dead||rcCtl(),f=idle?0:(held('KeyW','ArrowUp')?1:0)-(held('KeyS','ArrowDown')?1:0),t=idle?0:(held('KeyA','ArrowLeft')?1:0)-(held('KeyD','ArrowRight')?1:0); // the keys drive the RC bike while it is under control
   if(!run&&mode===0){ // buggy: fast, can't turn in place
     if(f>0)car.v+=(car.v<0?30:14*UPG.spd)*dt;else if(f<0)car.v-=(car.v>0?30:10)*dt;else car.v*=Math.exp(-dt*.9);
     car.v=Math.max(-7,Math.min(17*UPG.spd,car.v));
@@ -59,5 +59,5 @@ function drive(dt){
 // Engine drone (only starts once audio has been unlocked by a key press or click)
 let eng=null;
 function engine(){if(!AC||eng)return;const o=AC.createOscillator(),o2=AC.createOscillator(),f=AC.createBiquadFilter(),g=AC.createGain();o.type='sawtooth';o2.type='square';f.type='lowpass';f.frequency.value=420;g.gain.value=0;o.connect(f);o2.connect(f);f.connect(g);g.connect(master);o.start();o2.start();eng={o,o2,g}}
-function engineTick(){if(!eng)return;const t=AC.currentTime,thr=held('KeyW','KeyS','ArrowUp','ArrowDown')&&!run?1:0;const rpm=mode===0?Math.abs(car.v)/17:mode===2?Math.abs(car.v)/9:0;const hz=36+rpm*75+thr*10;
+function engineTick(){if(!eng)return;const t=AC.currentTime,thr=held('KeyW','KeyS','ArrowUp','ArrowDown')&&!run?1:0;const rc=rcCtl(),rpm=rc?Math.abs(RC.v)/(RC.form?7:16):mode===0?Math.abs(car.v)/17:mode===2?Math.abs(car.v)/9:0;const hz=(36+rpm*75+thr*10)*(rc?1.7:1); // the bike revs higher
   eng.o.frequency.setTargetAtTime(hz,t,.08);eng.o2.frequency.setTargetAtTime(hz*.5,t,.08);eng.g.gain.setTargetAtTime(soundOn?.03+.05*rpm+.025*thr:0,t,.1)}

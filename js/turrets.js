@@ -48,5 +48,6 @@ function turretTick(dt){
     m.lineT-=dt;if(m.lineT<=0)m.line.visible=false;
     m.muzO.getWorldPosition(m.flash.position);m.flash.material.opacity=shooting?rnd(.5,1):0;m.flash.scale.setScalar(shooting?rnd(.35,.6):.01)}
   // sound: loop the steady burst while any gun fires, play the wind-down tail when they stop
-  if(AC){const s=spot(_mw.set(car.x,car.y+1.3,car.z),.03);loopSnd('minigun',anyFire&&soundOn?.75*s.a:0,1,s.pan);
-    if(mgSnd&&!anyFire&&audio())sfx('minigun',{off:2.62,dur:2.4,vol:.75*s.a,pan:s.pan});mgSnd=anyFire}}
+  // (the RC bike's mech form shares this loop and tail: rcMg(), js/rcbike.js)
+  if(AC){const rc=rcMg(),any=anyFire||rc,s=spot(rc?_mw.set(RC.x,RC.y+1.4,RC.z):_mw.set(car.x,car.y+1.3,car.z),.03);loopSnd('minigun',any&&soundOn?.75*s.a:0,rc?1.1:1,s.pan);
+    if(mgSnd&&!any&&audio())sfx('minigun',{off:2.62,dur:2.4,vol:.75*s.a,pan:s.pan});mgSnd=any}}

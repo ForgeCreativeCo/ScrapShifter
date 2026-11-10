@@ -40,7 +40,7 @@ function applyBlast(p,pw,heavy){const R=2.3*pw+1.2;if(heavy)structHits(p);
   if(!pl.dead){const d=Math.hypot(p.x-car.x,p.y-(car.y+1),p.z-car.z);if(d<R)damagePlayer(PL_DMG*pw*(1-d/R)*foeK(),p)}
   enemies.slice().forEach(e=>{if(e.dead)return;const d=Math.hypot(p.x-e.x,p.y-(e.y+.8),p.z-e.z);if(d<R)damageEnemy(e,EN_DMG*pw*(1-d/R))});
   piecesNear(p.x,p.z,R).forEach(pc=>{const d=pieceDist(pc,p);if(d<R)damagePiece(pc,STRUCT_DMG*pw*(1-d/R),p)});
-  nestBlast(p,pw);truckBlast(p,pw)} // swarm foundries (swarm.js), convoy trucks (mission.js)
+  nestBlast(p,pw);truckBlast(p,pw);rcBlast(p,pw)} // swarm foundries (swarm.js), convoy trucks (mission.js)
 function spawnShell(p,v,pw,owner,r,col,gs){const s=mk(new THREE.SphereGeometry(r,10,8),steel,p.x,p.y,p.z);s.add(S(glowT,col,true,.9,gs));const sh={m:s,pw,v,tt:0,owner};shots.push(sh);return sh}
 // Step a shell forward without spawning it; returns where it would land (used for enemy incoming warnings)
 function simShell(p,v,owner){p=p.clone();v=v.clone();const h=1/60;for(let i=0;i<900;i++){v.y-=9.8*h;p.addScaledVector(v,h);if(shotHits(p,owner))return p}return null}

@@ -99,6 +99,7 @@
   <button data-m="1">Artillery<kbd>2</kbd></button>
   <button data-m="2">Mech<kbd>3</kbd></button>
   <button data-m="3">Gyro<kbd>4</kbd></button>
+  <button id="rcBtn">RC bike<kbd>5</kbd></button>
   <button id="fire">Fire<kbd>Space</kbd></button>
   <button id="rst">Restart run<kbd>R</kbd></button>
   <button id="snd"><span>Sound on</span><kbd>M</kbd></button>
@@ -109,7 +110,7 @@
   <span id="st">Loading 3D view…</span>
 </div>
 <div id="tune"></div>
-<div id="hud"><div class="pill"><span class="lbl">Hull</span><div id="hpBar"><div id="hpFill"></div></div><span id="hpNum">100</span></div><div class="pill" id="heatPill" style="display:none"><span class="lbl">Heat</span><div id="heatBar"><div id="heatFill"></div></div></div><div class="pill"><span class="lbl">Kills</span><span id="kills">0</span></div><div class="pill"><span class="lbl">Scrap</span><span id="scrapN">0</span></div></div>
+<div id="hud"><div class="pill"><span class="lbl">Hull</span><div id="hpBar"><div id="hpFill"></div></div><span id="hpNum">100</span></div><div class="pill" id="heatPill" style="display:none"><span class="lbl">Heat</span><div id="heatBar"><div id="heatFill"></div></div></div><div class="pill"><span class="lbl">Bike</span><span id="rcTxt">Ready</span></div><div class="pill"><span class="lbl">Kills</span><span id="kills">0</span></div><div class="pill"><span class="lbl">Scrap</span><span id="scrapN">0</span></div></div>
 <div id="obj"><div class="ot">Objective</div><div id="objT"></div><div id="objS"></div></div>
 <div id="marks"></div>
 <div id="dview"><div id="dvStatic"></div><div class="dvTop"><b>SPOTTER</b> <span id="dvInfo"></span></div><div id="dvWarn"></div></div>
@@ -155,6 +156,7 @@ window.addEventListener('error',e=>{const s=document.getElementById('st');if(s)s
 <script src="js/drone.js"></script>
 <script src="js/turrets.js"></script>
 <script src="js/gyro.js"></script>
+<script src="js/rcbike.js"></script>
 <script src="js/combat.js"></script>
 <script src="js/swarm.js"></script>
 <script src="js/mission.js"></script>
