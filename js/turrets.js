@@ -16,13 +16,15 @@ const mgs=[1,-1].map(side=>{
   const flash=S(puffT,0xFFD27A,true,0,.55);sc.add(flash);
   const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),mgTracerM);line.frustumCulled=false;line.visible=false;sc.add(line);
   return{pt:parts[parts.length-1],side,t,yaw,pitch,spin,muzO,flash,line,tgt:null,losT:0,los:false,spinK:0,spinA:0,trT:0,dmg:0,dmgT:0,fire:false,lineT:0}});
-const _mw=new THREE.Vector3(),_mt=new THREE.Vector3(),_mm=new THREE.Vector3();let mgSnd=false,mgK=0; // mgK: gyro deploy (0 tucked, 1 out)
+const _mw=new THREE.Vector3(),_mt=new THREE.Vector3(),_mm=new THREE.Vector3();let mgSnd=false,mgK=0; // mgK: deploy outside artillery mode (0 tucked, 1 out): gyro venting on the ground, buggy parked for the RC bike
 function mgReset(){mgK=0;mgs.forEach(m=>{m.tgt=null;m.spinK=0;m.fire=false;m.flash.material.opacity=0;m.line.visible=false;m.yaw.rotation.y=0;m.pitch.rotation.z=0})}
 function turretTick(dt){
   // gyro venting on the ground after an overheat: slide the turrets out for cover, tuck them back for take-off
   const vent=mode===3&&!run&&!pl.dead&&HEAT.over&&car.y-gh(car.x,car.z)<.5;
-  if(mode===3&&!run){mgK=vent?Math.min(1,mgK+dt*2.5):Math.max(0,mgK-dt*4);mgs.forEach(m=>apply(m.pt,m.pt.po[3],m.pt.po[1],ss(mgK)))}else mgK=0;
-  const on=((mode===1&&!run&&AIM.k>=1)||(vent&&mgK>=1))&&!pl.dead&&dt>0;let anyFire=false;
+  // buggy parked while its driver runs the RC bike (rcbike.js): same thing, the turrets come out and guard the rig
+  const guard=mode===0&&!run&&!pl.dead&&rcCtl(),dep=vent||guard;
+  if((mode===3||mode===0)&&!run){mgK=dep?Math.min(1,mgK+dt*2.5):Math.max(0,mgK-dt*4);mgs.forEach(m=>apply(m.pt,m.pt.po[mode],m.pt.po[1],ss(mgK)))}else mgK=0;
+  const on=((mode===1&&!run&&AIM.k>=1)||(dep&&mgK>=1))&&!pl.dead&&dt>0;let anyFire=false;
   for(const m of mgs){m.fire=false;
     if(on){m.muzO.getWorldPosition(_mw);
       // target: nearest living enemy in range; line of fire re-checked a few times a second
