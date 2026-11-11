@@ -56,6 +56,10 @@
   .mk b { display:block; width:44px; height:4px; margin:3px auto 0; background:rgba(0,0,0,.55); border-radius:2px; overflow:hidden; }
   .mk u { display:block; height:100%; background:currentColor; }
   .mk.nest { color:#ff5a3a; } .mk.truck { color:#6fe08a; } .mk.ext { color:#22e6ff; } .mk.warn { color:#ffc93a; } .mk.rival { color:#ff5a7a; }
+  /* race mode (js/race.js): ammo pill, countdown / banner text */
+  #ammoPill.dry #ammoN { color:#ff6a4a; } #ammoPill.got { animation:ammoGot .35s ease-out; } @keyframes ammoGot { 0% { border-color:#19e6ff; background:rgba(20,90,110,.85); } }
+  #big { position:fixed; left:50%; top:34%; transform:translate(-50%,-50%); font-size:84px; font-weight:800; letter-spacing:.06em; color:#fff; text-shadow:0 0 18px #19e6ff, 0 0 46px #ff2bd6, 0 2px 4px #000; opacity:0; transition:opacity .25s; pointer-events:none; z-index:4; }
+  #big.show { opacity:1; }
   #gmode { display:flex; gap:6px; margin-bottom:12px; } #gmode button { flex:1; padding:6px 10px; font-size:13px; } #gmode button.on { border-color:var(--accent); color:var(--accent); }
   #obj.flash { animation:objFlash .6s ease-out 3; } @keyframes objFlash { 0% { border-left-color:#ff4a3a; background:rgba(120,30,20,.85); } 100% { background:rgba(29,27,24,.82); } }
   /* drone view (js/drone.js): scanlines, vignette, static near max range; laser readout and rig tag */
@@ -110,14 +114,14 @@
   <span id="st">Loading 3D view…</span>
 </div>
 <div id="tune"></div>
-<div id="hud"><div class="pill"><span class="lbl">Hull</span><div id="hpBar"><div id="hpFill"></div></div><span id="hpNum">100</span></div><div class="pill" id="heatPill" style="display:none"><span class="lbl">Heat</span><div id="heatBar"><div id="heatFill"></div></div></div><div class="pill"><span class="lbl">Bike</span><span id="rcTxt">Ready</span></div><div class="pill"><span class="lbl">Kills</span><span id="kills">0</span></div><div class="pill"><span class="lbl">Scrap</span><span id="scrapN">0</span></div></div>
+<div id="hud"><div class="pill"><span class="lbl">Hull</span><div id="hpBar"><div id="hpFill"></div></div><span id="hpNum">100</span></div><div class="pill" id="heatPill" style="display:none"><span class="lbl">Heat</span><div id="heatBar"><div id="heatFill"></div></div></div><div class="pill" id="ammoPill" style="display:none"><span class="lbl">Ammo</span><span id="ammoN">0</span></div><div class="pill"><span class="lbl">Bike</span><span id="rcTxt">Ready</span></div><div class="pill"><span class="lbl">Kills</span><span id="kills">0</span></div><div class="pill"><span class="lbl">Scrap</span><span id="scrapN">0</span></div></div>
 <div id="obj"><div class="ot">Objective</div><div id="objT"></div><div id="objS"></div></div>
 <div id="marks"></div>
 <div id="dview"><div id="dvStatic"></div><div class="dvTop"><b>SPOTTER</b> <span id="dvInfo"></span></div><div id="dvWarn"></div></div>
 <div id="ltag"></div><div id="rigTag"></div>
-<div id="ovl"><div class="card"><div id="gmode"><button data-gm="mission">Mission</button><button data-gm="sandbox">Sandbox</button></div><h1 id="ovlT">Scrap Shifter</h1><p id="ovlSub"></p><div id="ovlStats"></div>
+<div id="ovl"><div class="card"><div id="gmode"><button data-gm="mission">Mission</button><button data-gm="sandbox">Sandbox</button><button data-gm="race">Race</button></div><h1 id="ovlT">Scrap Shifter</h1><p id="ovlSub"></p><div id="ovlStats"></div>
   <h3>Garage <span>Banked scrap: <b id="bank">0</b></span></h3><div id="ups"></div><button id="deploy">Deploy<kbd>Enter</kbd></button></div></div>
-<div id="toast"></div><div id="hurt"></div><div id="ebars"></div>
+<div id="toast"></div><div id="big"></div><div id="hurt"></div><div id="ebars"></div>
 <canvas id="c"></canvas>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <!-- post-processing + geometry helpers (three r128 examples, non-module builds) -->
@@ -136,6 +140,7 @@ window.addEventListener('error',e=>{const s=document.getElementById('st');if(s)s
 </script>
 <script src="js/core.js"></script>
 <script src="js/townplan.js"></script>
+<script src="js/raceplan.js"></script>
 <script src="js/maps.js"></script>
 <script src="js/render.js"></script>
 <script src="js/sfxdata.js"></script>
@@ -162,6 +167,7 @@ window.addEventListener('error',e=>{const s=document.getElementById('st');if(s)s
 <script src="js/mission.js"></script>
 <script src="js/wanted.js"></script>
 <script src="js/rivals.js"></script>
+<script src="js/race.js"></script>
 <script src="js/main.js"></script>
 <script>
 // A missing js/ file fails silently (no error event), so check that the last one ran.

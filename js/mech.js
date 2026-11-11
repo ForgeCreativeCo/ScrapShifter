@@ -20,7 +20,7 @@ function gait(dt,moved,turn){
   if(!active){gaitW=0;stepBob=0;runK=0;return}
   runK=cl((Math.abs(car.v)-TUNE.walk)/Math.max(.1,TUNE.run-TUNE.walk));
   G.S=L(TUNE.stride,TUNE.runStride,runK);G.D=L(TUNE.duty,TUNE.runDuty,runK);G.H=L(TUNE.stepH,TUNE.runStepH,runK);G.C=TUNE.crouch+runK*.15;
-  const want=Math.min(1,Math.abs(moved)/dt/1.2+Math.abs(turn)*1.2); // full gait above ~1.2 m/s, or when turning in place
+  const want=Math.min(1,Math.abs(moved)/Math.max(dt,1e-4)/1.2+Math.abs(turn)*1.2); // full gait above ~1.2 m/s, or when turning in place (dt is 0 while the briefing card pauses the game)
   gaitW+=(want-gaitW)*Math.min(1,dt*(want>gaitW?6:3));
   // one cycle covers S/D of ground, so the planted foot moves exactly with the body
   const du=(moved+(moved>=0?1:-1)*Math.abs(turn)*dt*.9)*G.D/G.S,prevU=gaitU;

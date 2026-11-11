@@ -6,6 +6,7 @@ let mode=0,prev=0,T=9,run=false,lift=0,liftF=0,rec=0,mf=0,lookY=1.2;const LIFT=[
 const TXT=['Buggy mode. WASD to drive, mouse aims, click to fire.','Artillery mode. Planted, long range, spotter drone.','Mech mode. WASD walk, Shift run (rams through stuff), F shield bash, click to fire. Shield blocks hits from the front.','Gyro mode. WASD fly, scroll altitude, click to drop bombs (hold for a stick). Flying builds heat.'];
 const modeBtns=document.querySelectorAll('button[data-m]');let camPull=1;const _camA=new THREE.Vector3(),_camP=new THREE.Vector3();
 function setMode(m){if(rcCtl())return; // driving the RC bike: the rig stays as it is
+  if(MS.race&&(m===1||m===3)){toast('Race rules: buggy and mech only',1.6);return}
   if(m===3&&GY.land!=null){GY.land=null;return} // cancel a queued landing
   if(pl.dead||(m===mode&&!run))return;if(mode===3&&!run&&gyroAir()){GY.land=m;toast('Landing…',1);return} // gyro must land before it transforms
   prev=mode;mode=m;modeBtns.forEach(b=>b.classList.toggle('on',+b.dataset.m===m));parts.forEach(pt=>{const o=pt.o;pt.f={p:o.position.toArray(),r:[o.rotation.x,o.rotation.y,o.rotation.z],s:o.scale.toArray()}});liftF=lift;T=0;run=true;st.textContent='Transforming…';if(audio()){const t=AC.currentTime;if(sfx(m===2||prev===2?'transform-a':'transform-b',{vol:.85,rate:rnd(.97,1.03)}))return;for(let i=0;i<6;i++){nz(t+i*.12,.12,3000,800,.25,'bandpass');th(t+i*.12,rnd(300,500),rnd(80,150),.1,.15)}}}
@@ -55,13 +56,14 @@ st.textContent=TXT[0]+' Right-drag to look, scroll to zoom.';
 
 // ---------- Controls ----------
 function fire(){if(rcCtl()){rcFire();return} // RC bike: detonate (its mech form fires from the held trigger, rcbike.js)
-  if(run||reloadT>0||pl.dead)return;if(mode===3){if(dropBomb())reloadT=RELOAD[3];return} // gyro: bombs from the rack
+  if(run||reloadT>0||pl.dead)return;if(MS.race&&!raceAmmo())return; // race: every shot costs a collected shell
+  if(mode===3){if(dropBomb())reloadT=RELOAD[3];return} // gyro: bombs from the rack
   reloadT=RELOAD[mode];const p=new THREE.Vector3();muz.getWorldPosition(p);const q=new THREE.Quaternion();gun.getWorldQuaternion(q);const dir=new THREE.Vector3(1,0,0).applyQuaternion(q);const [spd,pw]=FIRE[mode];
 const sh=spawnShell(p,dir.clone().multiplyScalar(spd),pw,'player',mode===1?.2:.1,0xFFAA50,mode===1?1.2:.6);sh.heavy=mode===1;
 rec=mode===1?1:mode===2?.35:.7;mf=mode===2?.7:1;trauma=Math.min(1,trauma+(mode===1?.45:mode===2?.05:.18));fireSnd(mode); // mech: light kick per round, it fires a stream
 for(let i=0;i<(mode===1?14:mode===2?2:5);i++)smoke(p.clone(),dir.clone().multiplyScalar(rnd(1.5,5)).add(new THREE.Vector3(rnd(-.6,.6),rnd(0,.8),rnd(-.6,.6))),0x8C857A,rnd(.3,.6),rnd(1.5,2.6)*(mode===1?1.4:1),rnd(1.4,2.6),.55);
 if(mode===1){for(let i=0;i<16;i++){const a=Math.random()*6.28,x=car.x+Math.cos(a)*1.4,z=car.z+Math.sin(a)*1.4;smoke(new THREE.Vector3(x,gh(x,z)+.3,z),new THREE.Vector3(Math.cos(a)*rnd(3,6),rnd(.2,.7),Math.sin(a)*rnd(3,6)),0x8A7A60,.6,2.6,rnd(1.4,2.4),.55)}}}
-function resetField(){applyUpgrades();buildTargets();initGround();resetStructures();resetBuildings();resetFires();resetCombat();HEAT.v=0;HEAT.over=false;resetDrone();mgReset();resetGyro();rcReset();resetMission();if(!MS.overlay)MS.phase=MS.sandbox?'sandbox':'nests'}
+function resetField(){applyUpgrades();buildTargets();initGround();resetStructures();resetBuildings();resetFires();resetCombat();HEAT.v=0;HEAT.over=false;resetDrone();mgReset();resetGyro();rcReset();resetMission();if(!MS.overlay)MS.phase=MS.race?'grid':MS.sandbox?'sandbox':'nests'}
 const sb=document.getElementById('snd');
 function toggleSound(){soundOn=!soundOn;sb.querySelector('span').textContent=soundOn?'Sound on':'Sound off'}
 modeBtns.forEach(b=>b.onclick=()=>setMode(+b.dataset.m));

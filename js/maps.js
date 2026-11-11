@@ -3,6 +3,12 @@
 // Classic script sharing one global scope with the other js/ files; load order is set in index.html.
 
 const TOWN=townPlan(11); // modern town (js/townplan.js)
+const RACEP=new URLSearchParams(location.search).get('map')==='race'?racePlan(23):{}; // race track + arena (js/raceplan.js), only built when picked
+// neon night: near-black sky with stars, the city's magenta haze on the horizon and in the fog, a cold moon as
+// the shadow-casting light. night:true turns on lit windows, neon signs, coloured lamps and the ground glow.
+const NIGHT_SKY={top:0x010104,horizon:0x170820,ground:0x07050f,fog:0x130922,sun:[0x8fa8ff,.45],sunDir:[-22,30,26],hemi:[0x5560c8,0x1c1230,.85],
+  cloud:.3,cloudCol:0x1c1232,stars:1,exposure:1,bloom:[.9,.6,.7],grade:{sat:1.15,con:1.08,tint:[.98,.97,1.06],vig:.34}};
+const CITY_AUDIO={ambience:'city-ambience',ambVol:.7,music:['music-total-war','music-revolution'],musVol:.32}; // js/musicdata.js (audio.js musicTick)
 
 const MAPS={
   test:{name:'Test field',size:120,seed:7,fog:[22,75],start:{x:0,z:0,h:0},
@@ -19,17 +25,19 @@ const MAPS={
     spawn:{ring:46,minDist:32},
     mission:{nests:1,extract:{x:0,z:0,r:6}}}, // one foundry in the test building, then extract at the start
   town:{name:'Town',size:HALF_T*2,seed:11,fog:[55,205],start:{x:-HALF_T+30,z:TP.HWY_Z,h:0},night:true,
-    audio:{ambience:'city-ambience',ambVol:.7,music:['music-total-war','music-revolution'],musVol:.32}, // js/musicdata.js (audio.js musicTick)
-    // neon night: near-black sky with stars, the city's magenta haze on the horizon and in the fog, a cold moon as
-    // the shadow-casting light. night:true turns on lit windows, neon signs, coloured lamps and the ground glow.
-    sky:{top:0x010104,horizon:0x170820,ground:0x07050f,fog:0x130922,sun:[0x8fa8ff,.45],sunDir:[-22,30,26],hemi:[0x5560c8,0x1c1230,.85],
-      cloud:.3,cloudCol:0x1c1232,stars:1,exposure:1,bloom:[.9,.6,.7],grade:{sat:1.15,con:1.08,tint:[.98,.97,1.06],vig:.34}},
+    audio:CITY_AUDIO,sky:NIGHT_SKY,
     height:townHeight,ground:'town',groundNoise:.025,perimeter:'trees',
     scenery:{n:0,rMin:0,rMax:0,keepClear:()=>true}, // no junk scenery; street furniture and trees come from props (js/props.js)
     targets:false,buildings:TOWN.buildings,layout:TOWN.layout,props:TOWN.props,
     spawn:{ring:HALF_T-30,minDist:60},
     // three foundries; then a convoy rolls west along the z=22 street and out the highway; extract by the highway exit
-    mission:{nests:3,convoy:{route:[[114,TP.HWY_Z],[-HALF_T+4,TP.HWY_Z]],trucks:3},extract:{x:-HALF_T+22,z:TP.HWY_Z,r:9}}}};
+    mission:{nests:3,convoy:{route:[[114,TP.HWY_Z],[-HALF_T+4,TP.HWY_Z]],trucks:3},extract:{x:-HALF_T+22,z:TP.HWY_Z,r:9}}},
+  // Race mode (js/race.js): a point-to-point track spiralling in through a neon city to a walled, multi-level arena.
+  // MAP.race = track, ammo crate spots, start grid; MAP.arena = decks and ramps. No swarm: the opponents are rival rigs.
+  race:{name:'Neon Run (race)',size:448,seed:23,fog:[55,205],start:RACEP.start,night:true,audio:CITY_AUDIO,sky:NIGHT_SKY,
+    height:raceHeight,ground:'race',groundNoise:.025,perimeter:'trees',cityEdge:RACE_EDGE,
+    scenery:{n:0,rMin:0,rMax:0,keepClear:()=>true},targets:false,buildings:RACEP.buildings,layout:RACEP.layout,props:RACEP.props,
+    spawn:{ring:150,minDist:40},mission:{nests:0,extract:{x:0,z:0,r:6}},race:RACEP.race,arena:RARENA}};
 
 const MAP_ID=MAPS[new URLSearchParams(location.search).get('map')]?new URLSearchParams(location.search).get('map'):'test',MAP=MAPS[MAP_ID];
 const HALF=MAP.size/2,PLAY=HALF-3; // map half-extent; vehicles stay inside ±PLAY, shells stop at ±(HALF-2)

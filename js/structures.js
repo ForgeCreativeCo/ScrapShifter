@@ -81,6 +81,8 @@ function resetStructures(){pieces.forEach(p=>{p.hp=p.max;setPieceState(p,0,null)
 LAYOUT.forEach((it,i)=>{if(it.k==='shed')addPiece('shed',it.x,it.z,it.rot,4.2,4.2,i*97+1);
   else{const n=Math.max(1,Math.round(it.w/2.5)),sw=it.w/n,c=Math.cos(it.rot),s=Math.sin(it.rot);for(let j=0;j<n;j++){const o=(j-(n-1)/2)*sw;addPiece('wall',it.x+o*c,it.z-o*s,it.rot,sw-.05,STRUCT.wall.d,i*97+j*13+5,it)}}});
 
+if(MAP.arena)buildArena(); // race map: the arena's indestructible walls (js/raceplan.js)
+
 // Indestructible scrap perimeter just outside the play area (hides the map edge; shots already stop at ±58)
 if(MAP.perimeter!=='trees')(()=>{const r=rng(4242),per=[],e=HALF-1.1;for(let a=-HALF;a<=HALF;a+=2.1)per.push([a,-e,0],[a,e,0],[-e,a,PI/2],[e,a,PI/2]);
   [0,1,2].forEach(mi=>{const list=per.filter((_,i)=>i%3===mi),im=new THREE.InstancedMesh(B(2.3,1,.45),corrM[mi],list.length),m=new THREE.Matrix4(),q=new THREE.Quaternion(),e=new THREE.Euler();

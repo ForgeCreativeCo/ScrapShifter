@@ -31,14 +31,15 @@ function damagePlayer(d,from){if(pl.dead)return;d*=run?TRANSFORM_ARMOR:ARMOR[mod
 function damageEnemy(e,d){if(e.dead)return;if(e.armor)d*=e.armor(); // rigs: per-mode armor
   e.hp-=d;e.flash=1;sparks(new THREE.Vector3(e.x,e.y+1,e.z),8);hitClank(e.g.position,.8);
   if(e.hp<=0)killEnemy(e,true)}
-function killEnemy(e,credit){e.hp=0;e.dead=true;e.deadT=0;e.bar.style.display='none';if(credit){kills++;killsEl.textContent=kills}
+function killEnemy(e,credit){if(MS.race&&dmgBy!=='player')credit=false; // race: rivals wreck each other too
+  e.hp=0;e.dead=true;e.deadT=0;e.bar.style.display='none';if(credit){kills++;killsEl.textContent=kills}
   e.g.traverse(o=>{if(o.isMesh)o.material=charM});const bike=e.type==='bike',rig=e.type==='rig';
   foeBlast=true;explode(new THREE.Vector3(e.x,e.y+(bike?.9:.8),e.z),bike?BIKE.pw:rig?2.2:1.5);foeBlast=false;if(rig)rigDie(e);
   if(credit){toast(bike?'Rusher down':rig?'Rival rig destroyed!':'Crawler destroyed');dropScrap(e.x,e.z,bike?5:rig?40:10);wantedKill(e)}}
-function foeK(){return dmgBy==='player'&&!foeBlast?1:FOE_DMG} // enemy blasts hurt the player and trucks less
+function foeK(rig){return dmgBy==='player'&&!foeBlast?1:MS.race?(rig?RACE.foeDmg:RACE.plDmg):FOE_DMG} // enemy blasts hurt the player and trucks less (race mode has its own scale, and uses it between rivals too)
 function applyBlast(p,pw,heavy){const R=2.3*pw+1.2;if(heavy)structHits(p);
   if(!pl.dead){const d=Math.hypot(p.x-car.x,p.y-(car.y+1),p.z-car.z);if(d<R)damagePlayer(PL_DMG*pw*(1-d/R)*foeK(),p)}
-  enemies.slice().forEach(e=>{if(e.dead)return;const d=Math.hypot(p.x-e.x,p.y-(e.y+.8),p.z-e.z);if(d<R)damageEnemy(e,EN_DMG*pw*(1-d/R))});
+  enemies.slice().forEach(e=>{if(e.dead)return;const d=Math.hypot(p.x-e.x,p.y-(e.y+.8),p.z-e.z);if(d<R)damageEnemy(e,EN_DMG*pw*(1-d/R)*(MS.race?foeK(true):1))});
   piecesNear(p.x,p.z,R).forEach(pc=>{const d=pieceDist(pc,p);if(d<R)damagePiece(pc,STRUCT_DMG*pw*(1-d/R),p)});
   nestBlast(p,pw);truckBlast(p,pw);rcBlast(p,pw)} // swarm foundries (swarm.js), convoy trucks (mission.js)
 function spawnShell(p,v,pw,owner,r,col,gs){const s=mk(new THREE.SphereGeometry(r,10,8),steel,p.x,p.y,p.z);s.add(S(glowT,col,true,.9,gs));const sh={m:s,pw,v,tt:0,owner};shots.push(sh);return sh}
@@ -169,7 +170,7 @@ function combatTick(dt){navFlush();navBudget=2; // at most 2 A* searches per fra
   if(!MAP.mission){ // free play: crawlers and bikes from the map ring (missions spawn from foundries instead)
   if(enemies.filter(e=>!e.dead&&e.type==='crawler').length<ENEMY_MAX){spawnT-=dt;if(spawnT<=0){spawnEnemy();spawnT=8}}
   if(!enemies.some(e=>!e.dead&&e.type==='bike')){bikeT-=dt;if(bikeT<=0){makeBike(...spawnPoint());bikeT=rnd(14,20)}}}
-  if(!pl.dead&&clock-pl.lastHit>5)pl.hp=Math.min(PL_MAX,pl.hp+5*dt); // slow repair out of combat
+  if(!pl.dead&&clock-pl.lastHit>5&&!(MS.race&&RS.pArena))pl.hp=Math.min(PL_MAX,pl.hp+5*dt); // slow repair out of combat
   const hp=Math.round(pl.hp);const hk=pl.hp/PL_MAX;hpFill.style.width=hk*100+'%';hpFill.style.background=hk>.55?'#8fae5a':hk>.25?'#d9a43a':'#d8553a';if(hpNum.textContent!=hp)hpNum.textContent=hp;
   hurtA=Math.max(0,hurtA-dt*1.5);hurtEl.style.opacity=Math.max(hurtA,pl.dead?.5:hk<.25?.25+.1*Math.sin(clock*5):0);
   if(toastT>0){toastT-=dt;if(toastT<=0)toastEl.classList.remove('show')}

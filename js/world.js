@@ -6,8 +6,8 @@
 // rebuild only the chunks they touch. Normals come from the heightfield, so chunk edges have no lighting seams.
 const GS=MAP.size,STEP=.5,GN=Math.round(GS/STEP),CH=64,NC=Math.ceil(GN/CH); // CH cells per chunk side (32 m)
 const gHt=new Float32Array((GN+1)*(GN+1)),gCol=new Float32Array((GN+1)*(GN+1)*3),gI=(c,r)=>r*(GN+1)+c;
-const MAPSPACE=MAP.ground==='town'; // town: one painted texture across the whole map (roads, lots); otherwise tiled dirt
-const groundMap=MAPSPACE?paintTownGround(MAP.size):dirtT;dirtT.repeat.set(1,1);
+const MAPSPACE=!!MAP.ground; // 'town' / 'race': one painted texture across the whole map (roads, lots); otherwise tiled dirt
+const groundMap=MAPSPACE?(MAP.ground==='race'?paintRaceGround:paintTownGround)(MAP.size):dirtT;dirtT.repeat.set(1,1);
 const groundM=new THREE.MeshStandardMaterial({map:groundMap,vertexColors:true,roughness:MAPSPACE?.92:1,metalness:0,normalMap:normalFromCanvas(groundMap.image,MAPSPACE?1.4:3,MAPSPACE?2048:512),normalScale:new THREE.Vector2(.7,.7)});
 // Night town: the painted neon glow (townGlow, js/townplan.js) is the ground's emissive map; scorch and stains
 // (vertex colours) darken it too. Wetter-looking streets pick up the sky's haze.

@@ -22,7 +22,7 @@ function turretTick(dt){
   // gyro venting on the ground after an overheat: slide the turrets out for cover, tuck them back for take-off
   const vent=mode===3&&!run&&!pl.dead&&HEAT.over&&car.y-gh(car.x,car.z)<.5;
   // buggy parked while its driver runs the RC bike (rcbike.js): same thing, the turrets come out and guard the rig
-  const guard=mode===0&&!run&&!pl.dead&&rcCtl(),dep=vent||guard;
+  const guard=mode===0&&!run&&!pl.dead&&rcCtl()&&!MS.race,dep=vent||guard; // race rules: no turrets, the parked rig is open to attack
   if((mode===3||mode===0)&&!run){mgK=dep?Math.min(1,mgK+dt*2.5):Math.max(0,mgK-dt*4);mgs.forEach(m=>apply(m.pt,m.pt.po[mode],m.pt.po[1],ss(mgK)))}else mgK=0;
   const on=((mode===1&&!run&&AIM.k>=1)||(dep&&mgK>=1))&&!pl.dead&&dt>0;let anyFire=false;
   for(const m of mgs){m.fire=false;

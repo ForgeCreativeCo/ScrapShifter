@@ -11,22 +11,24 @@ const RIG={hp:300*FOE_HP,armor:[1.25,.7,.85,1.4],tArmor:1.5,minMode:5,
   band:{far:125,art:60,mech:20},spd:[13,0,4.2,12],turn:[2.2,0,1.8,1.7],mechRun:6.5,gyroAlt:14,bashCd:4.5,bashDmg:22,bashR:4.2,
   hh:[2.2,2.6,5.2,1.9],barY:[3,3.4,6.2,2.8]};
 const rigTints=new Map(),RIG_TINT=new THREE.Color(1,.55,.5);
-function rigTint(m){if(!m||!m.color)return m;let t=rigTints.get(m);if(!t){t=m.clone();t.color=m.color.clone().multiply(RIG_TINT);rigTints.set(m,t)}return t}
+// tinted copies of the rig's materials, cached per tint (red by default; race rivals each get their own colour)
+function rigTint(m,tint=RIG_TINT){if(!m||!m.color)return m;const key=tint.getHex();let c=rigTints.get(key);if(!c)rigTints.set(key,c=new Map());let t=c.get(m);if(!t){t=m.clone();t.color=m.color.clone().multiply(tint);c.set(m,t)}return t}
 const PIV_I=parts.findIndex(pt=>pt.o===piv);
 const _rv1=new THREE.Vector3(),_rv2=new THREE.Vector3(),_rv3=new THREE.Vector3();
 
-function makeRig(x,z){const src=[];root.traverse(o=>src.push(o));const g=root.clone(true),dst=[];g.traverse(o=>dst.push(o));const map=o=>dst[src.indexOf(o)];
-  g.traverse(o=>{if(o.isMesh)o.material=Array.isArray(o.material)?o.material.map(rigTint):rigTint(o.material)});
+function makeRig(x,z,opt={}){const tint=opt.tint?new THREE.Color(...opt.tint):RIG_TINT,lampC=opt.lamp||0xff2a10,src=[];root.traverse(o=>src.push(o));const g=root.clone(true),dst=[];g.traverse(o=>dst.push(o));const map=o=>dst[src.indexOf(o)];
+  g.traverse(o=>{if(o.isMesh)o.material=Array.isArray(o.material)?o.material.map(m=>rigTint(m,tint)):rigTint(o.material,tint)});
   g.rotation.order='YZX';sc.add(g);
   const ps2=parts.map(pt=>({o:map(pt.o),po:pt.po}));ps2.forEach(pt=>apply(pt,pt.po[0],pt.po[0],1));
-  const lampM=new THREE.MeshStandardMaterial({color:0x2a0805,emissive:0xff2a10,emissiveIntensity:1.5});mk(new THREE.SphereGeometry(.13,10,8),lampM,0,.33,0,map(cab));
+  const lampM=new THREE.MeshStandardMaterial({color:0x2a0805,emissive:lampC,emissiveIntensity:1.5});mk(new THREE.SphereGeometry(.13,10,8),lampM,0,.33,0,map(cab));
+  let glow=null;if(opt.lamp){glow=S(glowT,lampC,true,.6,1.5);glow.position.set(0,.5,0);map(cab).add(glow)} // race rivals: a halo in their own colour
   const bar=document.createElement('div');bar.className='ebar';bar.innerHTML='<i></i>';ebars.appendChild(bar);
-  const e={type:'rig',g,parts:ps2,piv:map(piv),muz:map(muz),wheels:wheels.map(map),blades:blades.map(map),bombs:bombMeshes.map(map),lampM,bar,
+  const e={type:'rig',name:opt.name,lampC,glow,g,parts:ps2,piv:map(piv),muz:map(muz),wheels:wheels.map(map),blades:blades.map(map),bombs:bombMeshes.map(map),lampM,bar,
     x,z,y:gh(x,z),h:Math.atan2(-(car.z-z),car.x-x),v:0,pitch:0,roll:0,hp:RIG.hp,maxHp:RIG.hp,dead:false,deadT:0,flash:0,kx:0,kz:0,stun:0,rammed:-9,
     r:1.6,hh:RIG.hh[0],barY:RIG.barY[0],mode:0,prev:0,T:9,run:false,modeT:0,reload:2,burst:0,heat:0,nbombs:4,bombT:0,bashT:0,gait:0,spin:0,
     losT:0,los:false,thinkT:0,lead:rnd(.6,.9),strafe:Math.random()<.5?1:-1,strafeT:rnd(3,6),gyroCd:rnd(8,16),pass:0,landing:null,stepS:1,wp:null};
   e.armor=()=>e.run?RIG.tArmor:RIG.armor[e.mode];
-  e.mark=addMark('rival',()=>e.dead?null:_mp.set(e.x,e.y+e.barY+.8,e.z),()=>'Rival rig',()=>e.hp/e.maxHp);
+  e.mark=addMark('rival',()=>e.dead?null:_mp.set(e.x,e.y+e.barY+.8,e.z),()=>e.name||'Rival rig',()=>e.hp/e.maxHp);
   tuneEnv(g);enemies.push(e);return e}
 
 function rigSetMode(e,m){if(m===e.mode&&!e.run)return;e.prev=e.mode;e.mode=m;
@@ -58,7 +60,7 @@ function rigShoot(e,G,s,heavy){const p=new THREE.Vector3();e.muz.getWorldPositio
     else{const[off,dur]=sfxPick(SFX_CUT.gun);sfx('gun-shot',{t:a.t,off,dur:e.mode===2?.45:dur,fade:e.mode===2?.2:0,vol:(e.mode===2?1.3:1.9)*a.a,rate:e.mode===2?rnd(1.1,1.2):rnd(.92,1),pan:a.pan,lp:a.lp})}}}
 
 function rigTick(e,dt){
-  const tg=enemyTarget(e),dx=tg?tg.x-e.x:0,dz=tg?tg.z-e.z:0,d=tg?Math.hypot(dx,dz):1e9,toT=Math.atan2(-dz,dx);
+  const tg=e.race?raceTarget(e):enemyTarget(e),dx=tg?tg.x-e.x:0,dz=tg?tg.z-e.z:0,d=tg?Math.hypot(dx,dz):1e9,toT=Math.atan2(-dz,dx); // race rivals pick their own targets (race.js)
   e.x+=e.kx*dt;e.z+=e.kz*dt;const kd=Math.exp(-dt*4);e.kx*=kd;e.kz*=kd;e.stun=Math.max(0,e.stun-dt);
   e.modeT+=dt;e.reload-=dt;e.bashT-=dt;e.gyroCd-=dt;e.bombT-=dt;
   // transform: same staggered part interpolation as the player's (main.js)
@@ -67,11 +69,12 @@ function rigTick(e,dt){
   if(tg){e.losT-=dt;if(e.losT<=0){e.losT=.4;e.los=fireLine(_rv1.set(e.x,e.y+2,e.z),_rv2.set(tg.x,tg.y+1.2,tg.z))}}else e.los=false;
   const g0=gh(e.x,e.z),air=e.mode===3&&e.y-g0>2.5;
   // brain: switch modes (a flying gyro lands first)
-  if(!e.run&&e.stun<=0&&e.landing==null){e.thinkT-=dt;if(e.thinkT<=0){e.thinkT=.5;const m=tg?rigWantMode(e,d):0;if(m!==e.mode){if(air)e.landing=m;else rigSetMode(e,m)}}}
+  if(!e.run&&e.stun<=0&&e.landing==null){e.thinkT-=dt;if(e.thinkT<=0){e.thinkT=.5;const m=e.race?raceWantMode(e,d,tg):tg?rigWantMode(e,d):0;if(m!==e.mode){if(air)e.landing=m;else rigSetMode(e,m)}}}
   // movement
   let want=e.h,spd=0;const M=e.mode;
   if(!e.run&&e.stun<=0){
-    if(!tg){if(!e.wp||Math.hypot(e.wp.x-e.x,e.wp.z-e.z)<5)e.wp=navRandomPoint();if(M===0||M===2){want=navWant(e,e.wp.x,e.wp.z,dt);spd=RIG.spd[M]*.6}}
+    if(e.race&&!e.arena){const rd=raceDrive(e,dt);want=rd[0];spd=rd[1]} // racing: follow the track
+    else if(!tg){if(!e.wp||Math.hypot(e.wp.x-e.x,e.wp.z-e.z)<5)e.wp=e.race?navRandomPoint(0,0,50):navRandomPoint();if(M===0||M===2){want=navWant(e,e.wp.x,e.wp.z,dt);spd=RIG.spd[M]*.6}}
     else if(M===0){if(d>40||!e.los){want=navWant(e,tg.x,tg.z,dt);spd=RIG.spd[0]}else{want=toT+e.strafe*PI/2*.8;spd=9;e.strafeT-=dt;if(e.strafeT<0){e.strafe*=-1;e.strafeT=rnd(3,6)}
       const ax=e.x+Math.cos(want)*4,az=e.z-Math.sin(want)*4;if(navBlocked(nIdx(toCell(ax),toCell(az)))){e.strafe*=-1;want=toT+e.strafe*PI/2*.8}}}
     else if(M===2){if(d>RIG.bashR-.6){want=d>8?navWant(e,tg.x,tg.z,dt):toT;spd=d>12?RIG.mechRun:RIG.spd[2]}else want=toT}
@@ -107,7 +110,7 @@ function rigTick(e,dt){
     const s=Math.sign(Math.sin(e.gait));if(s!==e.stepS&&Math.abs(e.v)>.5){e.stepS=s;if(audio()){const a=spot(_rv1.set(e.x,e.y,e.z),.05);if(a.d<60)sfx('mech-step',{t:a.t,off:.03,vol:.8*a.a,rate:rnd(.9,1),pan:a.pan,lp:a.lp})}}}
   e.g.position.set(e.x,e.y+lift+bob,e.z);e.g.rotation.set(e.roll,e.h,e.pitch);
   // weapons
-  if(tg&&!e.run&&e.stun<=0&&!pl.dead){
+  if(tg&&!e.run&&e.stun<=0&&(e.race||!pl.dead)){
     if(M===3){if(air&&e.nbombs>0&&e.bombT<=0&&e.landing==null){const h=e.y-gh(e.x,e.z),tf=(-2+Math.sqrt(4+19.6*h))/9.8,ix=e.x+fx*e.v*.9*tf,iz=e.z+fz*e.v*.9*tf;
         if(Math.hypot(ix-tg.x,iz-tg.z)<4){e.nbombs--;e.bombT=.35;e.pass=Math.max(e.pass,2.5);const p=new THREE.Vector3(e.x,e.y+.2,e.z),v=new THREE.Vector3(fx*e.v*.9,-2,fz*e.v*.9);
           const sh=spawnShell(p,v,RIG.gun[3].pw,e,.18,0xFF5030,.6);sh.heavy=true;
@@ -119,14 +122,15 @@ function rigTick(e,dt){
       if(s){let yr=s.yw-e.h;yr=Math.atan2(Math.sin(yr),Math.cos(yr));const pp=e.parts[PIV_I].po[M].r,lim2=M===2?.6:M===0?2.1:PI;
         e.piv.rotation.y=Math.max(-lim2,Math.min(lim2,yr))+pp[1];e.piv.rotation.z=Math.max(-.3,Math.min(1.45,s.th-e.pitch));
         if(M===2&&Math.abs(yr)>.6)e.h+=Math.sign(yr)*Math.min(Math.abs(yr),1.5*dt); // mech turns to bring the arm gun on
-        if(e.reload<=0&&d<G.range&&(e.los||M===1)&&Math.abs(yr)<=lim2+.05){rigShoot(e,G,s,M===1);
+        if(e.reload<=0&&d<G.range&&(e.los||M===1)&&Math.abs(yr)<=lim2+.05&&(!e.race||raceFire(e))){rigShoot(e,G,s,M===1);
           if(M===2){e.burst++;e.reload=e.burst>=G.burst?(e.burst=0,rnd(2.5,3.2)):G.reload}else e.reload=G.reload*rnd(.9,1.2)}}}
     // mech shield bash
     if(M===2&&d<RIG.bashR&&e.bashT<=0){e.bashT=RIG.bashCd;const ux=dx/Math.max(d,.01),uz=dz/Math.max(d,.01);
-      if(tg===PLT){damagePlayer(RIG.bashDmg*FOE_DMG,_rv3.set(e.x,e.y+2,e.z));car.x+=ux*2.4;car.z+=uz*2.4;car.v*=.3;trauma=Math.min(1,trauma+.45)}else if(tg.max)damageTruck(tg,RIG.bashDmg*2*FOE_DMG);
+      if(tg===PLT){damagePlayer(e.race?RACE.bash:RIG.bashDmg*FOE_DMG,_rv3.set(e.x,e.y+2,e.z));car.x+=ux*2.4;car.z+=uz*2.4;car.v*=.3;trauma=Math.min(1,trauma+.45)}else if(tg.max)damageTruck(tg,RIG.bashDmg*2*FOE_DMG);
+      else if(tg.type==='rig'){dmgBy='enemy';damageEnemy(tg,RACE.bash*1.5);dmgBy='player';tg.kx+=ux*8;tg.kz+=uz*8;tg.stun=.6} // arena: rivals bash each other too
       sparks(_rv3.set(e.x+ux*2,e.y+2.4,e.z+uz*2),16);if(audio()){const a=spot(_rv3,.04);th(a.t,95,28,.45,.9*a.a);nz(a.t,.5,1800,90,.7*a.a)}}}
   // lamp: brighter when hit or about to fire
-  e.flash=Math.max(0,e.flash-dt*4);e.lampM.emissiveIntensity=e.flash>0?4:1+1.5*Math.max(0,1-e.reload);e.lampM.emissive.setHex(e.flash>0?0xffffff:0xff2a10)}
+  e.flash=Math.max(0,e.flash-dt*4);e.lampM.emissiveIntensity=e.flash>0?4:1+1.5*Math.max(0,1-e.reload);e.lampM.emissive.setHex(e.flash>0?0xffffff:e.lampC)}
 
 // on death: a flying rig drops out of the sky
 function rigDie(e){const g=gh(e.x,e.z);if(e.y-g<1)return;let vy=0;addFx(null,4,(f,k,dt)=>{vy-=9.8*dt;e.y=Math.max(g,e.y+vy*dt);e.g.position.y=e.y;e.g.rotation.x+=dt*2})}

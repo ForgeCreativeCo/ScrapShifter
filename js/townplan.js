@@ -65,6 +65,9 @@ function paintTownGround(size){const W=4096,k=W/size,X=x=>(x+size/2)*k,c=documen
   // zebra crossings on every approach to an intersection
   g.fillStyle='#e9e6dc';TP.LINES.forEach(a=>TP.LINES.forEach(b=>{for(let s=-half+.5;s<half-.3;s+=1){
     [[a+s,b-half-3.2,.5,2.6],[a+s,b+half+.6,.5,2.6],[a-half-3.2,b+s,2.6,.5],[a+half+.6,b+s,2.6,.5]].forEach(([x,z,w,d])=>g.fillRect(X(x),X(z),w*k,d*k))}}));
+  return groundFinish(c,g,size,W)}
+// Shared last steps of a painted ground (town and race maps): contact shadows, wear, the night glow map, the texture
+function groundFinish(c,g,size,W,glowExtra){
   // soft contact shadow (ambient occlusion) at building bases, under parked cars and under trees: drawn small, blurred up
   {const A=1024,a=A/size,ao=document.createElement('canvas');ao.width=ao.height=A;const q=ao.getContext('2d'),AX=x=>(x+size/2)*a;
     q.fillStyle='rgba(0,0,0,.55)';(MAP.buildings||[]).forEach(b=>{const w=b.mx*4+1.4,d=b.mz*4+1.4;q.fillRect(AX(b.x-w/2),AX(b.z-d/2),w*a,d*a)});
@@ -73,19 +76,20 @@ function paintTownGround(size){const W=4096,k=W/size,X=x=>(x+size/2)*k,c=documen
     g.save();g.filter='blur(10px)';g.drawImage(ao,0,0,W,W);g.restore()}
   // asphalt wear and patches
   for(let i=0;i<2500;i++){g.fillStyle=`rgba(${Math.random()<.5?20:80},${Math.random()<.5?20:80},${Math.random()<.5?22:80},.08)`;const s=3+Math.random()*25;g.fillRect(Math.random()*W,Math.random()*W,s,s*.6)}
-  if(MAP.night)townGlow=paintTownGlow(size,c);
+  if(MAP.night)townGlow=paintTownGlow(size,c,glowExtra);
   const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=R.capabilities.getMaxAnisotropy();t.generateMipmaps=true;return t}
 // Night town: light that the neon throws on the ground, painted once into a small map-wide texture and used as the
 // ground's emissive map (world.js), so it costs no real lights. Pools under the lamp heads (the lamp's colour), a wash
 // around each building in its sign colour, a cyan plaza. Multiplied by the ground paint so asphalt stays darker than
 // sidewalk and lane lines still read.
 let townGlow=null;
-function paintTownGlow(size,paint){const A=1024,a=A/size,c=document.createElement('canvas');c.width=c.height=A;const g=c.getContext('2d'),X=x=>(x+size/2)*a;
+function paintTownGlow(size,paint,extra){const A=1024,a=A/size,c=document.createElement('canvas');c.width=c.height=A;const g=c.getContext('2d'),X=x=>(x+size/2)*a;
   g.fillStyle='#1c1838';g.fillRect(0,0,A,A);g.globalCompositeOperation='lighter'; // faint base so unlit ground still reads
   const pool=(x,z,rad,col,al)=>{const gr=g.createRadialGradient(X(x),X(z),0,X(x),X(z),rad*a);gr.addColorStop(0,col);gr.addColorStop(1,'#000');g.globalAlpha=al;g.fillStyle=gr;g.beginPath();g.arc(X(x),X(z),rad*a,0,7);g.fill()};
   g.save();g.filter='blur(4px)';(MAP.buildings||[]).forEach(b=>{const w=b.mx*4+7,d=b.mz*4+7;g.globalAlpha=.3;g.fillStyle=NEON_CSS[b.neon||0];g.fillRect(X(b.x-w/2),X(b.z-d/2),w*a,d*a)});g.restore();
   (MAP.props?.lamps||[]).forEach(l=>pool(l.x+l.ax*1.55,l.z+l.az*1.55,10,['#ff5ad8','#3fe6ff','#b98cff','#ffb060'][l.c||0],.9));
   (MAP.props?.fountains||[]).forEach(f=>pool(f.x,f.z,16,'#3fe6ff',.8));
+  if(extra){g.globalAlpha=1;extra(g,X,a)} // map-specific neon (race track edge lines, arena)
   g.globalAlpha=1;g.globalCompositeOperation='multiply';g.drawImage(paint,0,0,A,A);
   g.globalCompositeOperation='source-over';g.fillStyle='#000';(MAP.buildings||[]).forEach(b=>g.fillRect(X(b.x-b.mx*2),X(b.z-b.mz*2),b.mx*4*a,b.mz*4*a)); // nothing glows indoors
   const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;return t}

@@ -45,29 +45,30 @@ const rcPose=k=>{rcParts.forEach(pt=>apply(pt,pt.a,pt.b,k))};rcPose(0);
 // HUD: status pill and top-bar button (index.html); the drone's rig tag doubles as "where is my rig" while driving the bike
 const rcTxt=document.getElementById('rcTxt'),rcBtn=document.getElementById('rcBtn');
 const RC_TXT=['RC bike · WASD drive · click or Space DETONATES it · 3 = mech form · 5 = back to the rig','RC mech · WASD walk · hold click or Space for the minigun · 1 = bike form · 5 = back to the rig'];
-function rcStatus(){if(RC.ctl)st.textContent=RC_TXT[RC.form]}
+function rcStatus(){if(RC.ctl)st.textContent=MS.race?'RC bike · WASD drive · click or Space DETONATES it · 5 = back to the rig (it is your only one)':RC_TXT[RC.form]}
 function rcSnd(rate){if(!audio())return;if(!sfx('transform-b',{vol:.6,rate})){const t=AC.currentTime;nz(t,.25,3000,900,.25,'bandpass');th(t,420,160,.2,.15)}}
 
 // ---------- Control ----------
 function rcKey(){if(pl.dead||MS.overlay)return;
   if(RC.ctl){rcRelease('Bike parked · 5 takes control again');return}
+  if(MS.race&&(RS.phase==='grid'||RC.state==='down'||(RC.state==='dock'&&RS.bikeUsed))){if(RS.phase!=='grid')toast('The RC bike is spent · one per race',1.8);return} // race rules: one launch
   if(RC.state==='down'){toast('Bike rebuilding · '+Math.ceil(RC.rebuildT)+' s',1.5);return}
   if(mode!==0||run){toast('Switch to buggy to use the bike',1.8);return}
   if(RC.state==='dock'){ // thrown forward off the deck
-    const p=deck.getWorldPosition(new THREE.Vector3());Object.assign(RC,{state:'launch',x:p.x,y:p.y+.4,z:p.z,h:car.h,v:10+Math.max(0,car.v),vy:4,pitch:0,roll:0,hp:RCB.hp,form:0,fk:0,spinK:0,gait:0});
+    if(MS.race)RS.bikeUsed=true;const p=deck.getWorldPosition(new THREE.Vector3());Object.assign(RC,{state:'launch',x:p.x,y:p.y+.4,z:p.z,h:car.h,v:10+Math.max(0,car.v),vy:4,pitch:0,roll:0,hp:RCB.hp,form:0,fk:0,spinK:0,gait:0});
     rcG.visible=true;rcG.scale.setScalar(.35);rcPose(0);rcSnd(1.6);
     for(let i=0;i<6;i++)smoke(p.clone(),new THREE.Vector3(rnd(-1,1),rnd(.5,1.5),rnd(-1,1)),0x8C857A,.3,1.4,rnd(.8,1.3),.5)}
   else if(Math.hypot(RC.x-car.x,RC.z-car.z)>RCB.range){toast('Bike is out of signal range',1.8);return}
   RC.ctl=true;RC.cyaw=baseYaw;RC.pull=1;firing=false;rcStatus()}
 function rcRelease(msg){if(!RC.ctl)return;RC.ctl=false;RC.mg=false;firing=false;st.textContent=TXT[mode];if(msg)toast(msg,2)}
-function rcSetForm(f){if(!RC.ctl||RC.state!=='out'||RC.form===f)return;RC.form=f;rcSnd(f?1.35:1.5);rcStatus()}
+function rcSetForm(f){if(!RC.ctl||RC.state!=='out'||RC.form===f)return;if(MS.race){toast('Race rules: the bike stays a bike',1.5);return}RC.form=f;rcSnd(f?1.35:1.5);rcStatus()}
 // Called from fire(): the bike's only weapon is itself. (The mech's minigun runs off the held trigger in rcTick.)
 function rcFire(){if(RC.state==='out'&&RC.form===0&&RC.fk<.05)rcDetonate()}
 function rcDown(){RC.state='down';RC.rebuildT=RCB.rebuild;rcG.visible=false;RC.mg=false;rcLine.visible=false;rcFlash.material.opacity=0;rcRelease()}
 function rcDetonate(){const p=new THREE.Vector3(RC.x,RC.y+.7,RC.z);rcDown();firing=false;reloadT=Math.max(reloadT,.8); // so a held trigger doesn't fire the buggy's gun straight after
-  explode(p,RCB.pw);toast('Bike detonated · rebuilding',2)}
+  explode(p,RCB.pw);toast(MS.race?'Bike detonated':'Bike detonated · rebuilding',2)}
 function rcHurt(d){if(!rcOut())return;RC.hp-=d*RCB.armor[RC.form];sparks(new THREE.Vector3(RC.x,RC.y+.8,RC.z),6);if(RC.ctl)trauma=Math.min(1,trauma+d/50);
-  if(RC.hp<=0){const p=new THREE.Vector3(RC.x,RC.y+.7,RC.z);rcDown();explode(p,RCB.pw*.7);toast('Bike destroyed · rebuilding',2.5)}} // its charge cooks off
+  if(RC.hp<=0){const p=new THREE.Vector3(RC.x,RC.y+.7,RC.z);rcDown();explode(p,RCB.pw*.7);toast(MS.race?'Bike destroyed':'Bike destroyed · rebuilding',2.5)}} // its charge cooks off
 function rcBlast(p,pw){if(!rcOut()||RC.self)return;const R=2.3*pw+1.2,d=Math.hypot(p.x-RC.x,p.y-(RC.y+.7),p.z-RC.z);if(d<R)rcHurt(PL_DMG*pw*(1-d/R)*foeK())} // from applyBlast
 function rcShotHit(sp){return rcOut()&&Math.hypot(sp.x-RC.x,sp.z-RC.z)<.9&&sp.y>RC.y-.2&&sp.y<RC.y+(RC.form?2.1:1.4)} // enemy shells (shotHits)
 function rcReset(){RC.ctl=false;RC.state='dock';RC.k=0;RC.mg=false;RC.hp=RCB.hp;RC.form=0;RC.fk=0;rcG.visible=false;rcLine.visible=false;rcFlash.material.opacity=0}
@@ -84,7 +85,7 @@ function rcTrace(a,b){const len=a.distanceTo(b),p=_rb;_rd.subVectors(b,a).normal
 // ---------- Per frame (main loop, after droneTick) ----------
 function rcTick(dt){
   RC.k=RC.ctl?Math.min(1,RC.k+dt*2.5):Math.max(0,RC.k-Math.max(dt,1/60)*4);
-  if(RC.state==='down'){RC.rebuildT-=dt;if(RC.rebuildT<=0){RC.state='dock';RC.hp=RCB.hp;toast('Bike ready',1.2)}}
+  if(RC.state==='down'&&!MS.race){RC.rebuildT-=dt;if(RC.rebuildT<=0){RC.state='dock';RC.hp=RCB.hp;toast('Bike ready',1.2)}}
   RC.mg=false;if(!rcOut())return;
   if(RC.ctl&&(pl.dead||mode!==0||run))rcRelease();
   if(RC.ctl)car.v*=Math.exp(-dt*5); // the rig rolls to a stop while its driver is busy
@@ -156,7 +157,7 @@ function rcMinigun(dt){const armed=RC.ctl&&RC.state==='out'&&RC.form===1&&RC.fk>
 
 // HUD (after droneHud, which owns the rig tag while spotting): bike status pill, and the rig's position + hull while away
 function rcHud(){const far=Math.round(Math.hypot(RC.x-car.x,RC.z-car.z)),hp=Math.max(0,Math.round(RC.hp/RCB.hp*100));
-  const s=RC.state==='dock'?'Ready':RC.state==='down'?'Rebuilding '+Math.ceil(RC.rebuildT)+' s':(RC.ctl?(RC.form?'Mech ':'Bike '):'Parked ')+hp+'% · '+far+' m';
+  const s=MS.race&&(RC.state==='down'||(RC.state==='dock'&&RS.bikeUsed))?'Spent':RC.state==='dock'?(MS.race?'Ready · 1 use':'Ready'):RC.state==='down'?'Rebuilding '+Math.ceil(RC.rebuildT)+' s':(RC.ctl?(RC.form?'Mech ':'Bike '):'Parked ')+hp+'% · '+far+' m';
   if(rcTxt&&rcTxt.textContent!==s)rcTxt.textContent=s;if(rcBtn)rcBtn.classList.toggle('on',RC.ctl);
   if(RC.k<=.3)return;const r=cv.getBoundingClientRect(),hot=clock-pl.lastHit<1.5;let txt='RIG '+Math.round(pl.hp/PL_MAX*100)+'%'+(hot?' · UNDER FIRE':'');
   _rcC.set(car.x,car.y+3,car.z).project(cam);const off=_rcC.z>1||Math.abs(_rcC.x)>.92||Math.abs(_rcC.y)>.88;

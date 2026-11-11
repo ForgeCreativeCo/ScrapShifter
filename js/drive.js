@@ -28,7 +28,7 @@ function collide(fx,fz){let n=null;
   if(into>.3&&Math.abs(car.v)>6){trauma=Math.min(1,trauma+.04*Math.abs(car.v));clank(Math.min(1,Math.abs(car.v)/15));car.v*=-.2}
   else car.v*=.92}
 function drive(dt){
-  const idle=pl.dead||rcCtl(),f=idle?0:(held('KeyW','ArrowUp')?1:0)-(held('KeyS','ArrowDown')?1:0),t=idle?0:(held('KeyA','ArrowLeft')?1:0)-(held('KeyD','ArrowRight')?1:0); // the keys drive the RC bike while it is under control
+  const idle=pl.dead||rcCtl()||(MS.race&&RS.phase==='grid'),f=idle?0:(held('KeyW','ArrowUp')?1:0)-(held('KeyS','ArrowDown')?1:0),t=idle?0:(held('KeyA','ArrowLeft')?1:0)-(held('KeyD','ArrowRight')?1:0); // the keys drive the RC bike while it is under control
   if(!run&&mode===0){ // buggy: fast, can't turn in place
     if(f>0)car.v+=(car.v<0?30:14*UPG.spd)*dt;else if(f<0)car.v-=(car.v>0?30:10)*dt;else car.v*=Math.exp(-dt*.9);
     car.v=Math.max(-7,Math.min(17*UPG.spd,car.v));

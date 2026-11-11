@@ -9,12 +9,13 @@ if(MAP.props){(()=>{const P=MAP.props,r=rng(MAP.seed*7+1),m4=new THREE.Matrix4()
     list.forEach((it,i)=>{fn(it,i,im);im.setMatrixAt(i,m4)});return im.build()};
   const put=(x,y,z,rotY,sx,sy,sz)=>m4.compose(V(x,y,z),q.setFromAxisAngle(UP,rotY),V(sx,sy,sz));
   // countryside only: never inside the town square (its streets run right to the corners) or on the highway
-  const onHwy=(x,z,m)=>x<-TP.EDGE+m&&Math.abs(z-TP.HWY_Z)<TP.ROAD/2+m,inTown=(x,z,m)=>Math.max(Math.abs(x),Math.abs(z))<TP.EDGE+m;
+  const CE=MAP.cityEdge||TP.EDGE; // half size of the built-up square (the race map sets its own; it has no highway)
+  const onHwy=(x,z,m)=>!MAP.cityEdge&&x<-TP.EDGE+m&&Math.abs(z-TP.HWY_Z)<TP.ROAD/2+m,inTown=(x,z,m)=>Math.max(Math.abs(x),Math.abs(z))<CE+m;
   const okSpot=(x,z,m=2)=>Math.abs(x)<PLAY-m&&Math.abs(z)<PLAY-m&&!inTown(x,z,m+4)&&!onHwy(x,z,m+4)&&Math.hypot(x-MAP.start.x,z-MAP.start.z)>14&&!layoutNear(x,z);
 
   // --- trees: street + park trees from the plan, wooded clusters on the hills, and a two-row tree line at the edge
   const trees=P.trees.slice();
-  const hillN=(MAP.size*MAP.size-4*TP.EDGE*TP.EDGE)/900; // scatter by countryside area, anywhere outside the town square
+  const hillN=(MAP.size*MAP.size-4*CE*CE)/900; // scatter by countryside area, anywhere outside the town square
   for(let i=0;i<hillN;i++){const cx=(r()*2-1)*PLAY,cz=(r()*2-1)*PLAY,n=4+Math.floor(r()*9);if(inTown(cx,cz,0))continue;
     for(let k=0;k<n;k++){const x=cx+(r()-.5)*20,z=cz+(r()-.5)*20;if(okSpot(x,z))trees.push({x,z,s:.9+r()*.9})}}
   const edge=[],e1=HALF-1.3,e2=HALF-2.9;for(let a=-HALF;a<=HALF;a+=3.4)[[a,-e1],[a,e1],[-e1,a],[e1,a],[a+1.7,-e2],[a+1.7,e2],[-e2,a+1.7],[e2,a+1.7]].forEach(([x,z])=>{if(!onHwy(x,z,5))edge.push({x,z,s:1.3+r()*.7})});
