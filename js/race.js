@@ -6,14 +6,14 @@
 //   arena -> crossing the gate puts a racer in the arena (the first three in get some hull repaired). Rigs in the arena
 //            fight each other and you; the last one standing wins. The gate closes RACE.gate s after the first racer is
 //            in: whoever is still outside is out. After RACE.sudden s everyone in the arena starts losing hull.
-// Rules for the player's rig: buggy and mech only (no artillery, no gyro), the RC bike can be launched once and only
+// Rules for the player's rig: buggy only on the track, buggy or mech in the arena (no artillery, no gyro), the RC bike can be launched once and only
 // detonates (no mini-mech, no turrets guarding the parked rig), no hull repair once in the arena.
 // A wrecked rig is out for good, rival or player. The route must be driven: progress only counts along the track, and
 // the gate stays locked for a rig that cut across.
 // Classic script sharing one global scope with the other js/ files; load order is set in index.html.
 
 const RACE={rivals:4,rigHp:120,foeDmg:.4,plDmg:.35,bash:14,crate:2,respawn:2.5,gate:60,pick:2.4,cd:3.4,spd:[14.6,15.3,15.9,16.4],bonus:[.6,.4,.2],sudden:150,
-  names:['VEX','ROOK','NOVA','GRIT'],tint:[[1,.5,.9],[.5,.95,1],[1,.72,.4],[.72,.6,1]],lamp:[0xff2bd6,0x19e6ff,0xff7a1a,0x9d4dff]};
+  boost:1.28,names:['VEX','ROOK','NOVA','GRIT'],tint:[[1,.5,.9],[.5,.95,1],[1,.72,.4],[.72,.6,1]],lamp:[0xff2bd6,0x19e6ff,0xff7a1a,0x9d4dff]};
 const RS={phase:'grid',cd:0,cdN:9,t:0,arenaOn:false,arenaT:0,shut:false,sdT:0,ammo:0,got:0,bikeUsed:false,ps:0,pi:0,plat:0,offT:0,pArena:false,place:0,arrived:0,
   racers:[],crates:[],dryT:0,gateT:0,beacon:null,mark:null};
 const TRK=MAP.race?MAP.race.track:null,ORD=['','1st','2nd','3rd','4th','5th','6th'];
@@ -31,10 +31,10 @@ if(MAP.race){const geo=B(.74,.44,.52),lid=B(.78,.08,.56);
 
 function raceReset(){if(!MAP.race)return;const G=MAP.race;
   Object.assign(RS,{phase:'grid',cd:RACE.cd,cdN:9,t:0,arenaOn:false,arenaT:0,shut:false,sdT:0,ammo:0,got:0,bikeUsed:false,ps:G.playerS,pi:Math.round(G.playerS/TRK.step),plat:-3,offT:0,pArena:false,place:0,arrived:0,dryT:0,gateT:0});
-  RS.racers.length=0;
+  RS.racers.length=0;if(mode!==0)setMode(0); // everyone starts as a buggy
   G.grid.slice(0,RACE.rivals).forEach((q,i)=>{const p=trkAt(TRK,q.s,q.lat),e=makeRig(p.x,p.z,{tint:RACE.tint[i],lamp:RACE.lamp[i],name:RACE.names[i]});
     Object.assign(e,{h:p.h,hp:RACE.rigHp,maxHp:RACE.rigHp,race:true,arena:false,place:0,rs:q.s,ri:Math.round(q.s/TRK.step),lane:q.lat,home:q.lat,laneT:q.lat,rspd:RACE.spd[i],
-      ammo:0,fireT:rnd(8,14),crT:0,slowT:0,told:false});RS.racers.push(e)});
+      ammo:0,fireT:rnd(8,14),crT:0,slowT:0,told:false,bph:rnd(0,9)});RS.racers.push(e)});
   RS.crates.forEach(c=>{c.t=0;c.g.visible=true});
   if(!RS.beacon)RS.beacon=makeBeacon(0,gh(0,0)+14,0,0x19e6ff,2,120); // the arena shows from anywhere on the track (starts above the top deck, out of the fight's way)
   RS.mark=addMark('warn',()=>RS.offT>1.5&&!RS.pArena&&RS.phase==='race'?_mp.set(TRK.x[RS.pi],2,TRK.z[RS.pi]):null,()=>'Rejoin the route')}
@@ -46,13 +46,14 @@ function raceArrive(e){const place=++RS.arrived,k=RACE.bonus[place-1]||0,first=!
   toast(`You finished ${ORD[place]}${k?' · +'+Math.round(k*100)+'% hull':''}. Last rig standing wins!`,4.5)}
 
 // ---------- Rival rigs (called from rigTick in js/rivals.js)
-// Racing: steer for a point a little way up the track in the rig's lane (A* round anything in the way); ease off for
+// Racing (buggy only): steer for a point a little way up the track in the rig's lane (A* round anything in the way); ease off for
 // corners; a little rubber-banding on the player.
 function raceDrive(e,dt){const T=TRK;if(RS.phase==='grid')return[e.h,0];
   const i1=Math.min(T.n-1,e.ri+16);let bend=T.h[i1]-T.h[e.ri];bend=Math.abs(Math.atan2(Math.sin(bend),Math.cos(bend)));
   e.lane+=Math.max(-5*dt,Math.min(5*dt,e.laneT-e.lane));
   const p=trkAt(T,e.rs+9+Math.abs(e.v)*.45,e.lane*(1-.6*Math.min(1,bend))),gap=RS.pArena||pl.dead?0:RS.ps-e.rs;
-  return[navWant(e,p.x,p.z,dt),e.rspd*(gap>50?1.07:gap<-70?.92:1)*(1-.3*Math.min(1,bend/1.3))]}
+  const bst=bend<.12&&(clock+e.bph)%9<5?RACE.boost:1; // rivals boost too: bursts on the straights, then a breather to cool
+  return[navWant(e,p.x,p.z,dt),e.rspd*bst*(gap>150?1.15:gap>50?1.07:gap<-70?.92:1)*(1-.3*Math.min(1,bend/1.3))]}
 // Who a rig shoots at: on the track, the nearest racer within reach; in the arena, the nearest racer who is in it too
 function raceTarget(e){let best=null,bd=e.arena?1e9:55;
   if(!pl.dead&&RS.phase!=='grid'&&RS.pArena===e.arena){const d=Math.hypot(car.x-e.x,car.z-e.z);if(d<bd){bd=d;best=PLT}}
@@ -118,7 +119,7 @@ function raceTick(dt){const T=TRK,A=MAP.arena,len=T.len;MS.phase=RS.phase;
 // ---------- HUD text and the briefing / result card (js/mission.js)
 const raceClock=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
 function raceHud(){const[pos,n]=racePos(),left=RS.racers.filter(o=>!o.dead).length;
-  if(RS.phase==='grid')return['Neon Run · get ready','No ammo on board: collect the crates. Buggy and mech only.'];
+  if(RS.phase==='grid')return['Neon Run · get ready','No ammo on board: collect the crates. Buggy only until the arena · Shift boosts.'];
   if(RS.phase==='arena')return[`Arena · ${left} rival${left===1?'':'s'} left`,(RS.arenaT>RACE.sudden?'SUDDEN DEATH · ':'Last rig standing wins · ')+(RS.ammo?RS.ammo+' shells':'out of ammo: bash (F)')];
   return[`Race · ${ORD[pos]} of ${n} · ${Math.min(99,Math.floor(RS.ps/TRK.len*100))}%`,RS.offT>1.5?'Off the route! Head back to the yellow marker.':RS.arenaOn?`The arena gate closes in ${Math.max(0,Math.ceil(RACE.gate-RS.arenaT))} s! · ${RS.ammo} shells`:`${raceClock(RS.t)} · ${RS.ammo} shells · the arena is the finish line`]}
 function raceCard(){const over=MS.result!=null,won=MS.result==='raceWon';
@@ -126,5 +127,5 @@ function raceCard(){const over=MS.result!=null,won=MS.result==='raceWon';
     sub:over?(won?'You won the arena. Everything you salvaged is banked.':MS.reason+' You keep half the scrap from this run.')
       :'A point-to-point race through the neon city against <b style="color:#ff5a7a">four rival rigs</b>. The finish line is the gate of a <b>multi-level arena</b>, where everyone who made it fights until one rig is left standing. '
        +'Your cannon starts <b>empty</b>: every shell comes from the <b style="color:#19e6ff">ammo crates</b> on the road (+'+RACE.crate+' each). Spend them on the way to thin the field, or save them for the arena: what you collect is all you get. '
-       +'<b>Buggy and mech only</b>. The RC bike can be launched <b>once</b>, as a bomb, and no turrets guard your rig while you drive it. The first three into the arena get hull repaired (60 / 40 / 20%), and the gate closes '+RACE.gate+' s after the first rig is in.',
+       +'<b>Buggy only on the track</b> (hold <b>Shift</b> to boost: it builds heat); the mech unlocks in the arena. The RC bike can be launched <b>once</b>, as a bomb, and no turrets guard your rig while you drive it. The first three into the arena get hull repaired (60 / 40 / 20%), and the gate closes '+RACE.gate+' s after the first rig is in.',
     stats:over?`<div><b>${RS.place?ORD[RS.place]:'–'}</b>into the arena</div><div><b>${raceClock(RS.t)}</b>race time</div><div><b>${kills}</b>rivals wrecked</div><div><b>${RS.got}</b>shells collected</div><div><b>+${RUN.kept}</b>scrap banked</div>`:''}}

@@ -6,7 +6,7 @@
 // swing [duty,1) it lifts and steps forward. Legs are half a cycle apart, so duty>.5 gives a heavy double-support walk
 // and duty<.5 gives a run with a flight phase. Leg parts live in root space, x forward, y up.
 // TUNE is live-editable from the Tune panel (T) and saved in this browser.
-const TUNE_DEF={walk:4.1,run:12,back:1.8,turn:1.1,accel:6.8,stride:1.7,runStride:2.6,stepH:.45,runStepH:.7,duty:.45,runDuty:.27,crouch:.22,bob:.1,sway:.035,lurch:.55,shake:.205,heatRun:22,heatCool:20,bldDmg:2.6,collapse:.6,fire:1}; // Joe's tuned values
+const TUNE_DEF={walk:4.1,run:12,back:1.8,turn:1.1,accel:6.8,stride:1.7,runStride:2.6,stepH:.45,runStepH:.7,duty:.45,runDuty:.27,crouch:.22,bob:.1,sway:.035,lurch:.55,shake:.205,heatRun:22,heatBoost:20,heatCool:20,bldDmg:2.6,collapse:.6,fire:1}; // Joe's tuned values
 const TUNE=Object.assign({},TUNE_DEF);try{Object.assign(TUNE,JSON.parse(localStorage.getItem('scrapTune')||'{}'))}catch(e){}
 const HIP_Y=2.5,ANK_Y=.35,L1=1.15,L2=1.05;
 const LEGS=[{th:parts[0],sh:parts[2],ft:parts[4],kn:[parts[6],parts[7]],off:0},{th:parts[1],sh:parts[3],ft:parts[5],kn:[parts[8],parts[9]],off:.5}];
@@ -47,7 +47,7 @@ function poseLegs(){if(ikK<=0)return;const bob=stepBob*ikK;
 const TSPEC=[['Speed'],['walk','Walk speed',1,6,.1],['run','Run speed (Shift)',3,12,.1],['back','Reverse speed',.5,4,.1],['turn','Turn rate',.4,2.5,.05],['accel','Acceleration',.5,8,.1],
   ['Stride'],['stride','Walk stride',.8,2.4,.05],['runStride','Run stride',1.2,3.2,.05],['stepH','Walk step height',.1,.9,.01],['runStepH','Run step height',.2,1.2,.01],['duty','Walk foot-down time',.4,.75,.01],['runDuty','Run foot-down time',.25,.5,.01],
   ['Weight'],['crouch','Crouch',0,.6,.01],['bob','Body dip per step',0,.3,.005],['sway','Side sway',0,.12,.005],['lurch','Lurch',0,1,.01],['shake','Footfall shake',0,.3,.005],
-  ['Heat'],['heatRun','Heat per second running',5,60,1],['heatCool','Cooling per second',5,50,1],
+  ['Heat'],['heatRun','Heat per second running',5,60,1],['heatBoost','Heat per second boosting (buggy)',5,60,1],['heatCool','Cooling per second',5,50,1],
   ['Buildings'],['bldDmg','Damage to buildings ×',.25,4,.05],['collapse','Collapse when this share of a floor is gone',.15,.8,.05],['fire','Fire × (spread and burn speed; 0 = off)',0,3,.05]];
 const tp=document.getElementById('tune'),tb=document.getElementById('tuneBtn');
 const saveTune=()=>{try{localStorage.setItem('scrapTune',JSON.stringify(TUNE))}catch(e){}};
@@ -105,18 +105,19 @@ function poseArm(){if(mode!==2||run)return;const[th,push]=smashAngle(SMASH.t),c=
   [ARM.upper,ARM.fore,ARM.shield].forEach(pt=>{const p=pt.po[2].p,x=p[0]-SHOULDER[0],y=p[1]-SHOULDER[1];
     pt.o.position.x=SHOULDER[0]+x*c-y*s+push;pt.o.position.y=SHOULDER[1]+x*s+y*c;pt.o.rotation.z=pt.po[2].r[2]+th})}
 
-// ---------- Mech heat (running cost) ----------
+// ---------- Heat (mech running, buggy boost, gyro flight) ----------
+// The buggy's Shift boost builds TUNE.heatBoost/s (js/drive.js) on the same gauge.
 // Running builds heat (TUNE.heatRun/s at full run), a bash adds 12. At 100 the mech overheats: it vents steam and
 // can't run or bash until it cools to 35. Walking cools at half rate, standing (or any other mode) at full rate.
 const HEAT={v:0,over:false,ventT:0},heatPill=document.getElementById('heatPill'),heatFill=document.getElementById('heatFill');
-function heatTick(dt){const mech=mode===2&&!run,running=mech&&runK>.3,flying=mode===3&&!run&&gyroAir()&&!HEAT.over;
-  if(running)HEAT.v+=TUNE.heatRun*UPG.heat*runK*dt;else if(flying)HEAT.v+=GYRO.heat*UPG.heat*dt;else if(mode===3&&HEAT.over&&car.y-gh(car.x,car.z)>.4){}/* overheated gyro vents only once it has landed */else HEAT.v-=TUNE.heatCool*(mech&&Math.abs(car.v)>.5?.5:1)*dt;
+function heatTick(dt){const mech=mode===2&&!run,running=mech&&runK>.3,boosting=mode===0&&!run&&boostK>.5,flying=mode===3&&!run&&gyroAir()&&!HEAT.over;
+  if(running)HEAT.v+=TUNE.heatRun*UPG.heat*runK*dt;else if(boosting)HEAT.v+=TUNE.heatBoost*UPG.heat*dt;else if(flying)HEAT.v+=GYRO.heat*UPG.heat*dt;else if(mode===3&&HEAT.over&&car.y-gh(car.x,car.z)>.4){}/* overheated gyro vents only once it has landed */else HEAT.v-=TUNE.heatCool*(mech&&Math.abs(car.v)>.5?.5:1)*dt;
   HEAT.v=Math.max(0,Math.min(100,HEAT.v));
   if(!HEAT.over&&HEAT.v>=100){HEAT.over=true;toast(mode===3?'Overheated! Landing to vent…':'Overheated! Venting…',2);
     if(audio()){const t=AC.currentTime;nz(t,1.6,7000,2500,.35,'highpass');th(t,900,300,.5,.1)}}
   if(HEAT.over&&HEAT.v<=35)HEAT.over=false;
-  loopSnd('siren',HEAT.over&&(mode===2||mode===3)&&!MS.overlay?.45:0,1); // overheat alarm (sfx/siren.mp3) until it has cooled
-  if(HEAT.over&&(mode===2||mode===3)){HEAT.ventT+=dt;if(HEAT.ventT>.07){HEAT.ventT=0;[1,-1].forEach(s=>{const q=new THREE.Vector3(-.8,4.1,.5*s).applyMatrix4(root.matrixWorld);
+  loopSnd('siren',HEAT.over&&mode!==1&&!MS.overlay?.45:0,1); // overheat alarm (sfx/siren.mp3) until it has cooled
+  if(HEAT.over&&mode!==1){HEAT.ventT+=dt;if(HEAT.ventT>.07){HEAT.ventT=0;[1,-1].forEach(s=>{const q=new THREE.Vector3(-.8,mode===0?1.3:4.1,.5*s).applyMatrix4(root.matrixWorld);
     smoke(q,new THREE.Vector3(-Math.cos(car.h)*1.5+rnd(-.3,.3),rnd(1.5,2.6),Math.sin(car.h)*1.5+rnd(-.3,.3)),0xE8E4DC,.25,rnd(1.2,2),rnd(.8,1.3),.45)})}}
-  heatPill.style.display=mode===2||mode===3?'flex':'none';heatFill.style.width=HEAT.v+'%';
+  heatPill.style.display=mode!==1?'flex':'none';heatFill.style.width=HEAT.v+'%';
   heatFill.style.background=HEAT.over?(Math.sin(clock*12)>0?'#d8553a':'#e9e4d8'):HEAT.v>70?'#d8553a':HEAT.v>40?'#d9a43a':'#c9b48a'}

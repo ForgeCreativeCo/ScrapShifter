@@ -8,6 +8,9 @@ const keys={};
 const UPG={spd:1,heat:1}; // rig upgrade multipliers (set by applyUpgrades in js/mission.js)
 const wheels=parts.filter(pt=>pt.po[0].r[0]===PI/2).map(pt=>pt.o);let wheelSpin=0,dustT=0;
 const CR=1.5; // vehicle collision radius
+// Buggy boost: hold Shift while driving forward for more top speed and pull. Builds heat (TUNE.heatBoost/s, shared HEAT
+// with the mech and gyro, js/mech.js); overheated, it is locked out until the heat is back down to 35.
+const BOOST={spd:1.3,acc:1.6};let boostK=0,boostT=0; // boostK: 0..1, eased, for the camera and exhaust flames
 const held=(...c)=>c.some(k=>keys[k]);
 function clank(pw){if(!audio())return;const t=AC.currentTime;nz(t,.3,2600,300,.5*pw,'bandpass');th(t,170,45,.25,.45*pw)}
 function collide(fx,fz){let n=null;
@@ -30,8 +33,10 @@ function collide(fx,fz){let n=null;
 function drive(dt){
   const idle=pl.dead||rcCtl()||(MS.race&&RS.phase==='grid'),f=idle?0:(held('KeyW','ArrowUp')?1:0)-(held('KeyS','ArrowDown')?1:0),t=idle?0:(held('KeyA','ArrowLeft')?1:0)-(held('KeyD','ArrowRight')?1:0); // the keys drive the RC bike while it is under control
   if(!run&&mode===0){ // buggy: fast, can't turn in place
-    if(f>0)car.v+=(car.v<0?30:14*UPG.spd)*dt;else if(f<0)car.v-=(car.v>0?30:10)*dt;else car.v*=Math.exp(-dt*.9);
-    car.v=Math.max(-7,Math.min(17*UPG.spd,car.v));
+    const boost=f>0&&car.v>=0&&held('ShiftLeft','ShiftRight')&&!HEAT.over,cap=17*UPG.spd*(boost?BOOST.spd:1);boostK+=((boost?1:0)-boostK)*Math.min(1,dt*5);
+    if(f>0){if(car.v<0)car.v+=30*dt;else if(car.v<cap)car.v=Math.min(cap,car.v+14*UPG.spd*(boost?BOOST.acc:1)*dt);else car.v=Math.max(cap,car.v-8*dt)} // above the cap (boost just ended): ease back down
+    else if(f<0)car.v-=(car.v>0?30:10)*dt;else car.v*=Math.exp(-dt*.9);
+    car.v=Math.max(-7,car.v);
     car.h+=t*2.2*Math.min(1,Math.abs(car.v)/4)*Math.sign(car.v)*(1-Math.abs(car.v)/45)*dt;
   }else if(!run&&mode===2){ // mech: slow walk, turns in place
     const tv=(f>0?(held('ShiftLeft','ShiftRight')&&!HEAT.over?TUNE.run:TUNE.walk):f<0?-TUNE.back:0)*UPG.spd; // hold Shift to run
@@ -39,6 +44,7 @@ function drive(dt){
   }else if(!run&&mode===3){gyroDrive(dt,f,t) // gyro: flies (gyro.js)
   }else{ // artillery is planted (the turret aims instead, see aimTick); transforming bleeds off speed
     car.v*=Math.exp(-dt*(run?3:6))}
+  if(mode!==0||run)boostK=0;
   if(Math.abs(car.v)<.03&&!f)car.v=0;
   const fx=Math.cos(car.h),fz=-Math.sin(car.h);
   // mech lurches: surges mid-stride, drags at each footfall (gait phase follows actual distance so feet stay planted)
@@ -55,6 +61,8 @@ function drive(dt){
   if(mode===0&&!run){wheelSpin=(wheelSpin+car.v*dt/.48)%(2*PI);wheels.forEach(w=>w.rotation.y=-wheelSpin)}
   // dust kicked up from the rear wheels
   dustT+=dt;if(mode===0&&Math.abs(car.v)>5&&dustT>.05){dustT=0;[1,-1].forEach(s=>{const x=car.x-fx*1.1+sx*.95*s,z=car.z-fz*1.1+sz*.95*s;smoke(new THREE.Vector3(x,gh(x,z)+.2,z),new THREE.Vector3(-fx*car.v*.15+rnd(-.3,.3),rnd(.3,.8),-fz*car.v*.15+rnd(-.3,.3)),0x8A7A60,.3,rnd(1.2,2),rnd(.9,1.5),.3*Math.min(1,Math.abs(car.v)/12))})}
+  // boost: flames and sparks out of the back
+  boostT+=dt;if(boostK>.4&&boostT>.03){boostT=0;const q=new THREE.Vector3(car.x-fx*1.9,car.y+.75,car.z-fz*1.9);fireball(q,new THREE.Vector3(-fx*6+rnd(-.5,.5),rnd(0,.6),-fz*6+rnd(-.5,.5)),.22,.8,rnd(.15,.25));if(Math.random()<.4)ember(q.clone(),new THREE.Vector3(-fx*rnd(5,9)+rnd(-1,1),rnd(.5,2),-fz*rnd(5,9)+rnd(-1,1)),rnd(.3,.6))}
   return{fx,fz}}
 // Engine drone (only starts once audio has been unlocked by a key press or click)
 let eng=null;

@@ -3,10 +3,11 @@
 
 // ---------- Mode switching and main loop ----------
 let mode=0,prev=0,T=9,run=false,lift=0,liftF=0,rec=0,mf=0,lookY=1.2;const LIFT=[0,.4,0,0],LOOK=[1.2,1.4,2.8,.8],shots=[];let last=performance.now(),clock=0;
-const TXT=['Buggy mode. WASD to drive, mouse aims, click to fire.','Artillery mode. Planted, long range, spotter drone.','Mech mode. WASD walk, Shift run (rams through stuff), F shield bash, click to fire. Shield blocks hits from the front.','Gyro mode. WASD fly, scroll altitude, click to drop bombs (hold for a stick). Flying builds heat.'];
+const TXT=['Buggy mode. WASD to drive, Shift boost (builds heat), mouse aims, click to fire.','Artillery mode. Planted, long range, spotter drone.','Mech mode. WASD walk, Shift run (rams through stuff), F shield bash, click to fire. Shield blocks hits from the front.','Gyro mode. WASD fly, scroll altitude, click to drop bombs (hold for a stick). Flying builds heat.'];
 const modeBtns=document.querySelectorAll('button[data-m]');let camPull=1;const _camA=new THREE.Vector3(),_camP=new THREE.Vector3();
 function setMode(m){if(rcCtl())return; // driving the RC bike: the rig stays as it is
-  if(MS.race&&(m===1||m===3)){toast('Race rules: buggy and mech only',1.6);return}
+  if(MS.race&&(m===1||m===3)){toast('Race rules: no artillery, no gyro',1.6);return}
+  if(MS.race&&m===2&&!RS.pArena){toast('Race rules: buggy only on the track · the mech unlocks in the arena',2.2);return}
   if(m===3&&GY.land!=null){GY.land=null;return} // cancel a queued landing
   if(pl.dead||(m===mode&&!run))return;if(mode===3&&!run&&gyroAir()){GY.land=m;toast('Landing…',1);return} // gyro must land before it transforms
   prev=mode;mode=m;modeBtns.forEach(b=>b.classList.toggle('on',+b.dataset.m===m));parts.forEach(pt=>{const o=pt.o;pt.f={p:o.position.toArray(),r:[o.rotation.x,o.rotation.y,o.rotation.z],s:o.scale.toArray()}});liftF=lift;T=0;run=true;st.textContent='Transforming…';if(audio()){const t=AC.currentTime;if(sfx(m===2||prev===2?'transform-a':'transform-b',{vol:.85,rate:rnd(.97,1.03)}))return;for(let i=0;i<6;i++){nz(t+i*.12,.12,3000,800,.25,'bandpass');th(t+i*.12,rnd(300,500),rnd(80,150),.1,.15)}}}
@@ -35,7 +36,7 @@ lookY+=(LOOK[mode]-lookY)*Math.min(1,rdt*2);
 lookIdle+=rdt;if(!drag&&lookIdle>1.5){const e=Math.exp(-rdt*2);lookOff*=e;lookEl*=e}
 let dy=(PI-car.h-AIM.yaw*AIM.k)-baseYaw; // artillery: camera sits behind the turret, not the hull
 dy=Math.atan2(Math.sin(dy),Math.cos(dy));baseYaw+=dy*Math.min(1,rdt*4);
-camR+=((CAM_R[mode]+runK*2.5)*zoom-camR)*Math.min(1,rdt*2);camEl+=(Math.max(.08,Math.min(1.35,CAM_EL[mode]+lookEl))-camEl)*Math.min(1,rdt*3);
+camR+=((CAM_R[mode]+runK*2.5+boostK*2)*zoom-camR)*Math.min(1,rdt*2);camEl+=(Math.max(.08,Math.min(1.35,CAM_EL[mode]+lookEl))-camEl)*Math.min(1,rdt*3);
 // artillery: look partway toward the predicted impact and push the fog back so the far marker stays visible
 // the camera stays anchored behind the vehicle (ax,az); only the look target (tx,tz) swings toward the impact
 const ak=AIM.k*.35,yaw=baseYaw+lookOff,ax=car.x+hx*2.5,az=car.z+hz*2.5,tx=L(ax,impactP.x,ak),ty=car.y+lookY,tz=L(az,impactP.z,ak);
