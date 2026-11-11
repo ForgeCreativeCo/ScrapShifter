@@ -13,11 +13,12 @@
 // the gate stays locked for a rig that cut across.
 // Classic script sharing one global scope with the other js/ files; load order is set in index.html.
 
-const RACE={rivals:4,rigHp:120,foeDmg:.4,plDmg:.35,bash:14,crate:2,respawn:2.5,gate:60,pick:2.4,cd:3.4,spd:[14.6,15.3,15.9,16.4],bonus:[.6,.4,.2],sudden:150,
-  back:2.5,boost:1.28,names:['VEX','ROOK','NOVA','GRIT'],tint:[[1,.5,.9],[.5,.95,1],[1,.72,.4],[.72,.6,1]],lamp:[0xff2bd6,0x19e6ff,0xff7a1a,0x9d4dff]};
+const RACE={rivals:8,rigHp:120,foeDmg:.4,plDmg:.35,bash:14,crate:2,respawn:2.5,gate:60,pick:2.4,cd:3.4,spd:[14.4,14.8,15.1,15.4,15.7,16,16.3,16.6],bonus:[.6,.4,.2],sudden:150,
+  back:2.5,boost:1.28,names:['VEX','ROOK','NOVA','GRIT','HEX','JOLT','RUST','ZERO'],
+  tint:[[1,.5,.9],[.5,.95,1],[1,.72,.4],[.72,.6,1],[.62,1,.5],[1,.95,.45],[1,.42,.42],[.5,.66,1]],lamp:[0xff2bd6,0x19e6ff,0xff7a1a,0x9d4dff,0x7dff3a,0xffe13a,0xff3344,0x4d7dff]};
 const RS={phase:'grid',cd:0,cdN:9,t:0,arenaOn:false,arenaT:0,shut:false,sdT:0,ammo:0,got:0,bikeUsed:false,ps:0,pi:0,plat:0,offT:0,pArena:false,place:0,arrived:0,
   racers:[],crates:[],pit:false,dryT:0,gateT:0,beacon:null,mark:null};
-const TRK=MAP.race?MAP.race.track:null,ORD=['','1st','2nd','3rd','4th','5th','6th'];
+const TRK=MAP.race?MAP.race.track:null,ORD=['','1st','2nd','3rd','4th','5th','6th','7th','8th','9th'];
 const ammoPill=document.getElementById('ammoPill'),ammoN=document.getElementById('ammoN'),bigEl=document.getElementById('big');
 let bigT=0;function big(t,s=1){bigEl.textContent=t;bigEl.classList.add('show');bigT=s}
 function raceBeep(f,d=.14,v=.3){if(audio())th(AC.currentTime,f,f*.985,d,v)}
@@ -31,7 +32,7 @@ if(MAP.race){const geo=B(.74,.44,.52),lid=B(.78,.08,.56);
   ammoPill.style.display='flex'}
 
 function raceReset(){if(!MAP.race)return;const G=MAP.race;
-  Object.assign(RS,{phase:'grid',cd:RACE.cd,cdN:9,t:0,arenaOn:false,arenaT:0,shut:false,sdT:0,ammo:0,got:0,bikeUsed:false,ps:G.playerS,pi:Math.round(G.playerS/TRK.step),plat:-3,offT:0,pArena:false,place:0,arrived:0,dryT:0,gateT:0});
+  Object.assign(RS,{phase:'grid',cd:RACE.cd,cdN:9,t:0,arenaOn:false,arenaT:0,shut:false,sdT:0,ammo:0,got:0,bikeUsed:false,ps:G.playerS,pi:Math.round(G.playerS/TRK.step),plat:G.playerLat,offT:0,pArena:false,place:0,arrived:0,dryT:0,gateT:0});
   pitClear();if(RS.pit){RS.pit=false;parts.forEach(pt=>apply(pt,pt.po[0],pt.po[0],1))}
   RS.racers.length=0;if(mode!==0)setMode(0); // everyone starts as a buggy
   G.grid.slice(0,RACE.rivals).forEach((q,i)=>RS.racers.push(raceRig(i,q.s,q.lat)));
@@ -165,7 +166,7 @@ function raceHud(){const[pos,n]=racePos(),left=RS.racers.filter(o=>!o.dead).leng
 function raceCard(){const over=MS.result!=null,won=MS.result==='raceWon';
   return{t:over?(won?'Last rig standing':'Wrecked'):'Neon Run',
     sub:over?(won?'You won the arena. Everything you salvaged is banked.':MS.reason+' You keep half the scrap from this run.')
-      :'A point-to-point race through the neon city against <b style="color:#ff5a7a">four rival rigs</b>. The finish line is the gate of a <b>multi-level arena</b>, where everyone who made it fights until one rig is left standing. '
+      :'A point-to-point race through the neon city against <b style="color:#ff5a7a">'+['','one','two','three','four','five','six','seven','eight'][RACE.rivals]+' rival rigs</b>. The finish line is the gate of a <b>multi-level arena</b>, where everyone who made it fights until one rig is left standing. '
        +'Your cannon starts <b>empty</b>: every shell comes from the <b style="color:#19e6ff">ammo crates</b> on the road (+'+RACE.crate+' each). Spend them on the way to thin the field, or save them for the arena: what you collect is all you get. A rig wrecked <b>on the track respawns without its ammo</b>; in the arena a wreck is final. '
        +'<b style="color:#ff5a3a">Gun towers</b> beside the road hose every racer with miniguns (go fast: they miss more) and lob grenades (watch for the red rings). Wreck one for +'+TOWER.bounty+' shells. '
        +'<b>Buggy only on the track</b> (hold <b>Shift</b> to boost: it builds heat); the mech unlocks in the arena. The RC bike can be launched <b>once</b>, as a bomb, and no turrets guard your rig while you drive it. The first three into the arena get hull repaired (60 / 40 / 20%), and the gate closes '+RACE.gate+' s after the first rig is in.',

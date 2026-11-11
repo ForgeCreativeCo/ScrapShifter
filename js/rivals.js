@@ -9,7 +9,7 @@
 const RIG={hp:300*FOE_HP,armor:[1.25,.7,.85,1.4],tArmor:1.5,minMode:5,
   gun:[{spd:30,pw:.7,reload:1.6,range:70,spread:1.6},{spd:37,pw:1.8,reload:4.5,range:135},{spd:34,pw:.35,reload:.24,range:45,spread:1.8,burst:3},{pw:1.8}],
   band:{far:125,art:60,mech:20},spd:[13,0,4.2,12],turn:[2.2,0,1.8,1.7],mechRun:6.5,gyroAlt:14,bashCd:4.5,bashDmg:22,bashR:4.2,
-  hh:[2.2,2.6,5.2,1.9],barY:[3,3.4,6.2,2.8]};
+  hh:[2.2,2.6,5.2,1.9],barY:[3,3.4,6.2,2.8],lodR:.45,lodD:70};
 const rigTints=new Map(),RIG_TINT=new THREE.Color(1,.55,.5);
 // tinted copies of the rig's materials, cached per tint (red by default; race rivals each get their own colour)
 function rigTint(m,tint=RIG_TINT){if(!m||!m.color)return m;const key=tint.getHex();let c=rigTints.get(key);if(!c)rigTints.set(key,c=new Map());let t=c.get(m);if(!t){t=m.clone();t.color=m.color.clone().multiply(tint);c.set(m,t)}return t}
@@ -28,6 +28,15 @@ function makeRig(x,z,opt={}){const tint=opt.tint?new THREE.Color(...opt.tint):RI
     r:1.6,hh:RIG.hh[0],barY:RIG.barY[0],mode:0,prev:0,T:9,run:false,modeT:0,reload:2,burst:0,heat:0,nbombs:4,bombT:0,bashT:0,gait:0,spin:0,
     losT:0,los:false,thinkT:0,lead:rnd(.6,.9),strafe:Math.random()<.5?1:-1,strafeT:rnd(3,6),gyroCd:rnd(8,16),pass:0,landing:null,stepS:1,wp:null};
   e.armor=()=>e.run?RIG.tArmor:RIG.armor[e.mode];
+  // draw cost: a rig is ~136 meshes. Meshes smaller than RIG.lodR cast no shadow; rigLod() hides what doesn't show
+  // (parts folded away to nothing in this pose, small meshes beyond RIG.lodD, the whole rig past the fog).
+  // Rotor blades, bombs and the lamp keep their own visibility.
+  const keep=new Set([...e.blades,...e.bombs]),byO=new Map();e.lod=[];
+  keep.forEach(o=>o.traverse(c=>keep.add(c)));keep.add(e.lampM&&g.getObjectByProperty('material',lampM));
+  ps2.forEach(pt=>{if(keep.has(pt.o))return;const q={o:pt.o,part:true,small:false};e.lod.push(q);byO.set(pt.o,q)});
+  g.traverse(o=>{if(!o.isMesh)return;if(!o.geometry.boundingSphere)o.geometry.computeBoundingSphere();
+    if(o.geometry.boundingSphere.radius*Math.max(o.scale.x,o.scale.y,o.scale.z)>=RIG.lodR)return;o.castShadow=false;if(keep.has(o))return;
+    const q=byO.get(o);if(q)q.small=true;else e.lod.push({o,part:false,small:true})});
   e.mark=addMark('rival',()=>e.dead?null:_mp.set(e.x,e.y+e.barY+.8,e.z),()=>e.name||'Rival rig',()=>e.hp/e.maxHp);
   tuneEnv(g);enemies.push(e);return e}
 
@@ -59,7 +68,9 @@ function rigShoot(e,G,s,heavy){const p=new THREE.Vector3();e.muz.getWorldPositio
     if(e.mode===1){const[off,dur]=sfxPick(SFX_CUT.tank);sfx('tank-shot',{t:a.t,off,dur,fade:.5,vol:.9*a.a,pan:a.pan,lp:a.lp})}
     else{const[off,dur]=sfxPick(SFX_CUT.gun);sfx('gun-shot',{t:a.t,off,dur:e.mode===2?.45:dur,fade:e.mode===2?.2:0,vol:(e.mode===2?1.3:1.9)*a.a,rate:e.mode===2?rnd(1.1,1.2):rnd(.92,1),pan:a.pan,lp:a.lp})}}}
 
-function rigTick(e,dt){
+function rigLod(e){const d=Math.hypot(e.x-cam.position.x,e.z-cam.position.z);e.g.visible=d<sc.fog.far+8;if(!e.g.visible)return;const far=d>RIG.lodD;
+  for(const q of e.lod){const s=q.o.scale;q.o.visible=!(q.part&&Math.max(s.x,s.y,s.z)<.03)&&!(q.small&&far)}}
+function rigTick(e,dt){rigLod(e);
   const tg=e.race?raceTarget(e):enemyTarget(e),dx=tg?tg.x-e.x:0,dz=tg?tg.z-e.z:0,d=tg?Math.hypot(dx,dz):1e9,toT=Math.atan2(-dz,dx); // race rivals pick their own targets (race.js)
   e.x+=e.kx*dt;e.z+=e.kz*dt;const kd=Math.exp(-dt*4);e.kx*=kd;e.kz*=kd;e.stun=Math.max(0,e.stun-dt);
   e.modeT+=dt;e.reload-=dt;e.bashT-=dt;e.gyroCd-=dt;e.bombT-=dt;

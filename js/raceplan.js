@@ -91,9 +91,9 @@ function racePlan(seed){const r=rng(seed),pick=a=>a[Math.floor(r()*a.length)],T=
   W_(-20,-18,0,6,'jersey');W_(20,18,0,6,'jersey');W_(-18,20,PI/2,6,'jersey');W_(18,-20,PI/2,6,'jersey');W_(0,-21,0,6);W_(0,21,0,6); // main deck
   W_(0,-6,0,5,'jersey');W_(0,6,0,5,'jersey'); // top deck
   [[34,50,0],[39.2,50,0],[-30,-54,0],[-24.8,-54,0],[54,-8,PI/2],[54,-13.2,PI/2]].forEach(([x,z,rot],i)=>props.cars.push({x,z,rot,c:i%6}));
-  // --- start grid: rivals on the front row, beside the player and behind; the player starts mid-pack
-  const sp=trkAt(T,22,-3);
-  return{buildings:B,layout:L,props,start:{x:sp.x,z:sp.z,h:sp.h},race:{track:T,crates,startS:36,playerS:22,grid:[{s:30,lat:3},{s:30,lat:-3},{s:22,lat:3},{s:14,lat:0}],towers}}}
+  // --- start grid: three rows of three, 4 m apart across the track; the player starts in the middle of the middle row
+  const sp=trkAt(T,22,0);
+  return{buildings:B,layout:L,props,start:{x:sp.x,z:sp.z,h:sp.h},race:{track:T,crates,startS:36,playerS:22,playerLat:0,grid:[{s:30,lat:-4},{s:30,lat:0},{s:30,lat:4},{s:22,lat:-4},{s:22,lat:4},{s:14,lat:-4},{s:14,lat:0},{s:14,lat:4}],towers}}}
 
 // ---------- Arena walls: indestructible pieces (they block movement, shells, sight lines and the nav grid like any
 // wall) with one merged mesh for the concrete and one per neon trim colour
@@ -143,7 +143,7 @@ function paintRaceGround(size){const W=4096,k=W/size,X=x=>(x+size/2)*k,c=documen
   const across=(s,fn)=>{const p=trkAt(T,s);g.save();g.translate(X(p.x),X(p.z));g.rotate(-p.h);fn();g.restore()};
   const cheq=s=>across(s,()=>{for(let i=0;i<2;i++)for(let j=0;j<17;j++){g.fillStyle=(i+j)%2?'#e9e6dc':'#15161a';g.fillRect((i-1)*.8*k,(-RTW+.2+j*.8)*k,.8*k,.8*k)}});
   cheq(MAP.race.startS);cheq(T.len-18);
-  MAP.race.grid.concat({s:MAP.race.playerS,lat:-3}).forEach(q=>across(q.s,()=>{g.strokeStyle='#e9e6dc';g.lineWidth=.16*k;g.strokeRect(-2.4*k,(-q.lat-1.6)*k,5.2*k,3.2*k)}));
+  MAP.race.grid.concat({s:MAP.race.playerS,lat:MAP.race.playerLat}).forEach(q=>across(q.s,()=>{g.strokeStyle='#e9e6dc';g.lineWidth=.16*k;g.strokeRect(-2.4*k,(-q.lat-1.6)*k,5.2*k,3.2*k)}));
   return groundFinish(c,g,size,W,(q,QX,a)=>{ // extra neon thrown on the ground: the track's edge lines, the arena ring and deck outlines
     const edge=(off,col)=>{q.beginPath();for(let i=0;i<T.n;i++){const x=QX(T.x[i]-Math.sin(T.h[i])*off),z=QX(T.z[i]-Math.cos(T.h[i])*off);i?q.lineTo(x,z):q.moveTo(x,z)}q.strokeStyle=col;q.lineWidth=2.6*a;q.globalAlpha=.75;q.stroke()};
     q.save();q.filter='blur(2px)';edge(RTW-.7,NEON_CSS[1]);edge(-(RTW-.7),NEON_CSS[0]);
