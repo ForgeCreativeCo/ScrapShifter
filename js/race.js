@@ -35,7 +35,7 @@ function raceReset(){if(!MAP.race)return;const G=MAP.race;
   pitClear();if(RS.pit){RS.pit=false;parts.forEach(pt=>apply(pt,pt.po[0],pt.po[0],1))}
   RS.racers.length=0;if(mode!==0)setMode(0); // everyone starts as a buggy
   G.grid.slice(0,RACE.rivals).forEach((q,i)=>RS.racers.push(raceRig(i,q.s,q.lat)));
-  RS.crates.forEach(c=>{c.t=0;c.g.visible=true});
+  RS.crates.forEach(c=>{c.t=0;c.g.visible=true});towerReset(); // gun towers along the track (js/towers.js)
   if(!RS.beacon)RS.beacon=makeBeacon(0,gh(0,0)+14,0,0x19e6ff,2,120); // the arena shows from anywhere on the track (starts above the top deck, out of the fight's way)
   RS.mark=addMark('warn',()=>RS.offT>1.5&&!RS.pArena&&RS.phase==='race'?_mp.set(TRK.x[RS.pi],2,TRK.z[RS.pi]):null,()=>'Rejoin the route')}
 
@@ -167,5 +167,6 @@ function raceCard(){const over=MS.result!=null,won=MS.result==='raceWon';
     sub:over?(won?'You won the arena. Everything you salvaged is banked.':MS.reason+' You keep half the scrap from this run.')
       :'A point-to-point race through the neon city against <b style="color:#ff5a7a">four rival rigs</b>. The finish line is the gate of a <b>multi-level arena</b>, where everyone who made it fights until one rig is left standing. '
        +'Your cannon starts <b>empty</b>: every shell comes from the <b style="color:#19e6ff">ammo crates</b> on the road (+'+RACE.crate+' each). Spend them on the way to thin the field, or save them for the arena: what you collect is all you get. A rig wrecked <b>on the track respawns without its ammo</b>; in the arena a wreck is final. '
+       +'<b style="color:#ff5a3a">Gun towers</b> beside the road hose every racer with miniguns (go fast: they miss more) and lob grenades (watch for the red rings). Wreck one for +'+TOWER.bounty+' shells. '
        +'<b>Buggy only on the track</b> (hold <b>Shift</b> to boost: it builds heat); the mech unlocks in the arena. The RC bike can be launched <b>once</b>, as a bomb, and no turrets guard your rig while you drive it. The first three into the arena get hull repaired (60 / 40 / 20%), and the gate closes '+RACE.gate+' s after the first rig is in.',
     stats:over?`<div><b>${RS.place?ORD[RS.place]:'–'}</b>into the arena</div><div><b>${raceClock(RS.t)}</b>race time</div><div><b>${kills}</b>rivals wrecked</div><div><b>${RS.got}</b>shells collected</div><div><b>+${RUN.kept}</b>scrap banked</div>`:''}}

@@ -51,5 +51,7 @@ function turretTick(dt){
     m.muzO.getWorldPosition(m.flash.position);m.flash.material.opacity=shooting?rnd(.5,1):0;m.flash.scale.setScalar(shooting?rnd(.35,.6):.01)}
   // sound: loop the steady burst while any gun fires, play the wind-down tail when they stop
   // (the RC bike's mech form shares this loop and tail: rcMg(), js/rcbike.js)
-  if(AC){const rc=rcMg(),any=anyFire||rc,s=spot(rc?_mw.set(RC.x,RC.y+1.4,RC.z):_mw.set(car.x,car.y+1.3,car.z),.03);loopSnd('minigun',any&&soundOn?.75*s.a:0,rc?1.1:1,s.pan);
-    if(mgSnd&&!any&&audio())sfx('minigun',{off:2.62,dur:2.4,vol:.75*s.a,pan:s.pan});mgSnd=any}}
+  // and so do the race gun towers (towerMg(), js/towers.js): the nearest firing one, pitched down
+  if(AC){const rc=rcMg(),tw=anyFire||rc?null:towerMg(),any=anyFire||rc||!!tw,s=spot(tw?_mw.copy(tw):rc?_mw.set(RC.x,RC.y+1.4,RC.z):_mw.set(car.x,car.y+1.3,car.z),.03);loopSnd('minigun',any&&soundOn?(tw?1:.75)*s.a:0,rc?1.1:tw?.86:1,s.pan);
+    if(mgSnd&&!any&&audio())sfx('minigun',{off:2.62,dur:2.4,vol:.75*mgA,pan:mgPan,rate:mgRate});mgSnd=any;if(any){mgA=s.a;mgPan=s.pan;mgRate=rc?1.1:tw?.86:1}}}
+let mgA=1,mgPan=0,mgRate=1; // where the last burst came from, for its wind-down tail

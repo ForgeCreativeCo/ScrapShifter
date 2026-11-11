@@ -56,6 +56,13 @@ function racePlan(seed){const r=rng(seed),pick=a=>a[Math.floor(r()*a.length)],T=
   const ok=q=>{if(Math.max(-q[0],q[2],-q[1],q[3])>RACE_EDGE-2)return false;const m=A.half+5;if(q[0]<m&&q[2]>-m&&q[1]<m&&q[3]>-m)return false;
     for(const o of rects)if(q[0]<o[2]+2.5&&q[2]>o[0]-2.5&&q[1]<o[3]+2.5&&q[3]>o[1]-2.5)return false;
     for(let i=0;i<T.n;i++)if(rd(q,T.x[i],T.z[i])<RTW+3.2)return false;return true};
+  // --- gun towers (js/towers.js): one every ~300 m beside the track, alternating sides, clear of every lane and the
+  // arena; reserved first so the buildings leave a gap round each one
+  const towers=[];
+  for(let s=260,i=0;s<T.len-150;s+=300,i++)for(let k=0;k<8;k++){const sd=(i+(k>>2))%2?1:-1,p=trkAt(T,s+(k&3)*14,sd*(RTW+3.4));
+    if(Math.max(Math.abs(p.x),Math.abs(p.z))>RACE_EDGE-4||Math.max(Math.abs(p.x),Math.abs(p.z))<A.half+8)continue;
+    let near=1e9;for(let j=0;j<T.n;j++)near=Math.min(near,Math.hypot(T.x[j]-p.x,T.z[j]-p.z));if(near<RTW+2.6)continue;
+    towers.push({x:p.x,z:p.z,s:s+(k&3)*14});rects.push([p.x-2.2,p.z-2.2,p.x+2.2,p.z+2.2]);break}
   for(let s=4;s<T.len-26;s+=2)for(const sd of[1,-1]){const p=trkAt(T,s),nx=-Math.sin(p.h)*sd,nz=-Math.cos(p.h)*sd,alongX=Math.abs(Math.cos(p.h))>.707,ml=4+Math.floor(r()*3);
     for(const md of[5,4,3,2]){const mx=alongX?ml:md,mz=alongX?md:ml,W=mx*4,D=mz*4,off=RTW+3.7+W/2*Math.abs(nx)+D/2*Math.abs(nz),cx=p.x+nx*off,cz=p.z+nz*off,q=[cx-W/2,cz-D/2,cx+W/2,cz+D/2];
       if(!ok(q))continue;rects.push(q);const rr=Math.max(Math.abs(cx),Math.abs(cz));
@@ -65,6 +72,7 @@ function racePlan(seed){const r=rng(seed),pick=a=>a[Math.floor(r()*a.length)],T=
       B.push({x:cx,z:cz,rot:0,mx,mz,floors:fl,style:st,neon:Math.floor(r()*NEON.length)});break}}
   // --- lamps: alternate sides, the colour changes every stretch
   for(let s=8,i=0;s<T.len-22;s+=14,i++){const sd=i%2?1:-1,p=trkAt(T,s),nx=-Math.sin(p.h)*sd,nz=-Math.cos(p.h)*sd,ax=Math.abs(nx)>Math.abs(nz)?-Math.sign(nx):0,az=ax?0:-Math.sign(nz);
+    if(towers.some(t=>Math.hypot(t.x-p.x-nx*(RTW+1),t.z-p.z-nz*(RTW+1))<3.5))continue; // a tower stands there
     props.lamps.push({x:p.x+nx*(RTW+1),z:p.z+nz*(RTW+1),ax,az,c:Math.floor(s/150)%4})}
   // --- obstacles on straights: jersey-barrier slaloms and rows of parked cars
   const hAt=s=>T.h[Math.max(0,Math.min(T.n-1,Math.round(s/T.step)))],straight=(s,l)=>{for(let u=s-10;u<=s+l;u+=6)if(Math.abs(Math.sin(hAt(u)-hAt(s)))>.02)return false;return true};
@@ -85,7 +93,7 @@ function racePlan(seed){const r=rng(seed),pick=a=>a[Math.floor(r()*a.length)],T=
   [[34,50,0],[39.2,50,0],[-30,-54,0],[-24.8,-54,0],[54,-8,PI/2],[54,-13.2,PI/2]].forEach(([x,z,rot],i)=>props.cars.push({x,z,rot,c:i%6}));
   // --- start grid: rivals on the front row, beside the player and behind; the player starts mid-pack
   const sp=trkAt(T,22,-3);
-  return{buildings:B,layout:L,props,start:{x:sp.x,z:sp.z,h:sp.h},race:{track:T,crates,startS:36,playerS:22,grid:[{s:30,lat:3},{s:30,lat:-3},{s:22,lat:3},{s:14,lat:0}]}}}
+  return{buildings:B,layout:L,props,start:{x:sp.x,z:sp.z,h:sp.h},race:{track:T,crates,startS:36,playerS:22,grid:[{s:30,lat:3},{s:30,lat:-3},{s:22,lat:3},{s:14,lat:0}],towers}}}
 
 // ---------- Arena walls: indestructible pieces (they block movement, shells, sight lines and the nav grid like any
 // wall) with one merged mesh for the concrete and one per neon trim colour

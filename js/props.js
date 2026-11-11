@@ -55,6 +55,7 @@ if(MAP.props){(()=>{const P=MAP.props,r=rng(MAP.seed*7+1),m4=new THREE.Matrix4()
   P.fountains.forEach(f=>{const y=gh(f.x,f.z);mk(C_(3.4,3.6,.7,28),stone,f.x,y+.35,f.z);mk(C_(3.05,3.05,.12,28),water,f.x,y+.62,f.z);mk(C_(.45,.6,2.4,12),stone,f.x,y+1.2,f.z);mk(C_(1.3,.5,.35,20),stone,f.x,y+2.5,f.z);
     solids.push({x:f.x,z:f.z,r:3.6})});
 })()}
+if(MAP.race&&MAP.race.towers)MAP.race.towers.forEach(t=>solids.push({x:t.x,z:t.z,r:1.7})); // race gun towers' plinths (js/towers.js)
 function C_(r1,r2,h,s){return new THREE.CylinderGeometry(r1,r2,h,s)}
 
 // A lumpy tree canopy: icosahedron blobs displaced by a smooth position-based wobble (so shared vertices stay joined),
