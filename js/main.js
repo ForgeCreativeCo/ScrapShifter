@@ -17,7 +17,7 @@ if(run){T+=dt;let done=true;const n=parts.length,fwd=mode===2||(mode===1&&prev==
 const {fx:hx,fz:hz}=drive(dt);engineTick();sfxTick(dt);musicTick(rdt);
 rec*=Math.exp(-dt*7);gun.position.x=-rec*.45;
 const kick=rec*(mode===1?0:.15),bob=(stepBob-G.C)*ikK,sway=mode===2?TUNE.sway*gaitW*ikK*Math.sin(2*PI*gaitU):0;
-pl.slump+=((pl.dead?1:0)-pl.slump)*Math.min(1,dt*3); // wrecked: sag and list to one side
+pl.slump+=((pl.dead&&!RS.pit?1:0)-pl.slump)*Math.min(1,dt*3); // wrecked: sag and list to one side
 root.position.set(car.x-hx*kick,car.y+lift+bob-pl.slump*.35,car.z-hz*kick);if(rigLamp){rigLamp.position.set(car.x+hx*4.5,root.position.y+3,car.z+hz*4.5);rigLamp.intensity=pl.dead?0:1.5}
 root.rotation.set(car.roll+sway+pl.slump*.22,car.h,car.pitch+rec*(mode===0?.08:mode===1?.04:.02)-pl.slump*.08);
 poseLegs();smashTick(dt);poseArm();heatTick(dt);carsTick(dt);fireTick(dt);reloadT=Math.max(0,reloadT-dt);gyroTick(dt);droneTick(dt);rcTick(dt);aimTick(dt);droneHud();rcHud();turretTick(dt);if(firing&&mode!==1)fire(); // hold to keep firing (artillery: one per click)

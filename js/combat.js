@@ -25,8 +25,8 @@ function damagePlayer(d,from){if(pl.dead)return;d*=run?TRANSFORM_ARMOR:ARMOR[mod
   else{sparks(new THREE.Vector3(car.x,car.y+1.2,car.z),8);hitClank(root.position,1)}
   pl.hp-=d;pl.lastHit=clock;hurtA=Math.min(1,hurtA+d/30);trauma=Math.min(1,trauma+d/60);
   if(pl.hp<=0){pl.hp=0;pl.dead=true;AIM.pending=false;firing=false;
-    explode(new THREE.Vector3(car.x,car.y+.8,car.z),1.4);slowT=.35;
-    let tt=0;addFx(null,14,(f,k,dt)=>{tt+=dt;if(tt>.12&&pl.dead){tt=0;const q=new THREE.Vector3(car.x+rnd(-.6,.6),car.y+1,car.z+rnd(-.6,.6));fireball(q,new THREE.Vector3(0,rnd(1,2),0),.35,.9*(1-k),rnd(.4,.7));smoke(q.clone().setY(q.y+.8),new THREE.Vector3(rnd(-.2,.2),rnd(1.5,2.5),rnd(-.2,.2)),0x221F1B,.7,3.2,rnd(4,6),.6)}});
+    explode(new THREE.Vector3(car.x,car.y+.8,car.z),1.4);slowT=MS.race&&!RS.pArena?0:.35; /* no slow-mo before a pit-crew rebuild: it lasts exactly RACE.back s */
+    let tt=0;addFx(null,14,(f,k,dt)=>{tt+=dt;if(tt>.12&&pl.dead&&!RS.pit){tt=0;const q=new THREE.Vector3(car.x+rnd(-.6,.6),car.y+1,car.z+rnd(-.6,.6));fireball(q,new THREE.Vector3(0,rnd(1,2),0),.35,.9*(1-k),rnd(.4,.7));smoke(q.clone().setY(q.y+.8),new THREE.Vector3(rnd(-.2,.2),rnd(1.5,2.5),rnd(-.2,.2)),0x221F1B,.7,3.2,rnd(4,6),.6)}});
     toast('Wrecked!',3)}}
 function damageEnemy(e,d){if(e.dead)return;if(e.armor)d*=e.armor(); // rigs: per-mode armor
   e.hp-=d;e.flash=1;sparks(new THREE.Vector3(e.x,e.y+1,e.z),8);hitClank(e.g.position,.8);

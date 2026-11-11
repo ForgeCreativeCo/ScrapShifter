@@ -139,7 +139,8 @@ function missionTick(dt){
   if(MS.overlay)return;
   if(MS.phase==='over'){MS.endT-=dt;if(MS.endT<=0)showOverlay();return}
   RUN.t+=dt;swarmTick(dt);convoyTick(dt);pickupsTick(dt);if(MS.phase==='sandbox')wantedTick(dt);if(MS.race)raceTick(dt);
-  if(pl.dead){MS.deadT=(MS.deadT||0)+dt;if(MS.deadT>2.5)endRun(MS.race?'raceLost':MS.sandbox?'sandbox':'lost','Your rig was wrecked.')}else MS.deadT=0;
+  if(pl.dead){MS.deadT=(MS.deadT||0)+dt;if(MS.race&&!RS.pArena&&MS.phase==='race'){if(MS.deadT>RACE.back+1){raceRespawn();MS.deadT=0}} // wrecked on the track: the pit crew rebuilds the rig (js/race.js); this is only a fallback
+    else if(MS.deadT>2.5)endRun(MS.race?'raceLost':MS.sandbox?'sandbox':'lost','Your rig was wrecked.')}else MS.deadT=0;
   // after the foundries fall, the swarm counter-attacks from the map edge (crawlers and bikes go for the convoy)
   if(MS.phase==='convoy'||MS.phase==='extract'){const busy=MS.phase==='convoy'&&MS.rolling;MS.spawnT-=dt;MS.bikeT-=dt;
     if(MS.spawnT<=0&&enemies.filter(e=>!e.dead&&e.type==='crawler').length<(busy?3:2)){spawnEnemy();MS.spawnT=busy?9:14}
